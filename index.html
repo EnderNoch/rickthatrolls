@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -55,13 +55,23 @@
   /* Plakietka pokazywana tylko wtedy, gdy przeglądarka zablokowała dźwięk. */
   #hint {
     position: fixed;
-    left: 50%;
+    /* Centrowanie przez auto-marginesy, a nie left:50% + translate — przy
+       left:50% dostępna szerokość to połowa okna i długie tłumaczenia
+       łamały się bez potrzeby. */
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
     bottom: max(24px, env(safe-area-inset-bottom, 0px));
-    transform: translateX(-50%);
     padding: 10px 18px;
     border-radius: 999px;
-    font: 500 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 500 15px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     color: #fff;
+    /* Tłumaczenia bywają dłuższe od polskiego, więc plakietka może się
+       zawinąć zamiast wystawać poza ekran na wąskim telefonie. */
+    max-width: min(88vw, 46ch);
+    text-align: center;
     background: rgba(0, 0, 0, .55);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
@@ -69,7 +79,6 @@
     visibility: hidden;
     transition: opacity .35s ease;
     pointer-events: none;
-    white-space: nowrap;
   }
   #hint.on { opacity: 1; visibility: visible; }
 </style>
@@ -101,7 +110,8 @@
   <!-- ============================================================ -->
 </video>
 
-<div id="hint">Dotknij, aby włączyć dźwięk</div>
+<!-- Treść wstawia skrypt w języku przeglądarki; angielski to język zapasowy. -->
+<div id="hint"></div>
 
 <script>
 (function () {
@@ -112,8 +122,111 @@
   var AUTO_FULLSCREEN = false; // true = pierwsze dotknięcie wchodzi w pełny ekran
   /* ============================================================== */
 
+  /* ===================== TŁUMACZENIA PLAKIETKI =====================
+     Plakietka pojawia się tylko wtedy, gdy przeglądarka zablokowała
+     autoodtwarzanie z dźwiękiem. Język brany jest z navigator.languages;
+     brak wpisu = angielski. Poprawki wystarczy nanieść w tej tabeli. */
+  var HINT = {
+    "en":      "Tap or click for sound",
+    "pl":      "Dotknij lub kliknij, aby włączyć dźwięk",
+    "de":      "Tippen oder klicken für Ton",
+    "fr":      "Touchez ou cliquez pour activer le son",
+    "es":      "Toca o haz clic para activar el sonido",
+    "pt":      "Toque ou clique para ativar o som",
+    "it":      "Tocca o clicca per attivare l'audio",
+    "nl":      "Tik of klik voor geluid",
+    "sv":      "Tryck eller klicka för ljud",
+    "da":      "Tryk eller klik for lyd",
+    "nb":      "Trykk eller klikk for lyd",
+    "nn":      "Trykk eller klikk for lyd",
+    "is":      "Ýttu eða smelltu fyrir hljóð",
+    "fi":      "Napauta tai klikkaa äänen päälle",
+    "et":      "Puudutage või klõpsake heli sisselülitamiseks",
+    "lv":      "Pieskarieties vai noklikšķiniet, lai ieslēgtu skaņu",
+    "lt":      "Palieskite arba spustelėkite, kad įjungtumėte garsą",
+    "cs":      "Klepněte nebo klikněte pro zvuk",
+    "sk":      "Ťuknite alebo kliknite pre zvuk",
+    "sl":      "Dotaknite se ali kliknite za zvok",
+    "hr":      "Dodirnite ili kliknite za zvuk",
+    "bs":      "Dodirnite ili kliknite za zvuk",
+    "sr":      "Додирните или кликните за звук",
+    "mk":      "Допрете или кликнете за звук",
+    "bg":      "Докоснете или щракнете за звук",
+    "ro":      "Atinge sau dă clic pentru sunet",
+    "hu":      "Koppintson vagy kattintson a hangért",
+    "el":      "Πατήστε ή κάντε κλικ για ήχο",
+    "sq":      "Prekni ose klikoni për zë",
+    "uk":      "Торкніться або клацніть, щоб увімкнути звук",
+    "be":      "Націсніце, каб уключыць гук",
+    "ru":      "Нажмите или кликните, чтобы включить звук",
+    "kk":      "Дыбысты қосу үшін түртіңіз немесе басыңыз",
+    "uz":      "Ovoz uchun bosing",
+    "az":      "Səs üçün toxunun və ya klikləyin",
+    "tr":      "Ses için dokunun veya tıklayın",
+    "ca":      "Toca o fes clic per activar el so",
+    "gl":      "Toca ou fai clic para activar o son",
+    "eu":      "Ukitu edo egin klik soinua aktibatzeko",
+    "ga":      "Tapáil nó cliceáil le haghaidh fuaime",
+    "cy":      "Tapiwch neu cliciwch am sain",
+    "af":      "Tik of klik vir klank",
+    "sw":      "Gusa au bofya kwa sauti",
+    "id":      "Ketuk atau klik untuk suara",
+    "ms":      "Ketik atau klik untuk bunyi",
+    "fil":     "I-tap o i-click para sa tunog",
+    "vi":      "Chạm hoặc nhấp để bật âm thanh",
+    "th":      "แตะหรือคลิกเพื่อเปิดเสียง",
+    "hi":      "ध्वनि के लिए टैप या क्लिक करें",
+    "bn":      "শব্দের জন্য ট্যাপ বা ক্লিক করুন",
+    "ta":      "ஒலிக்கு தட்டவும் அல்லது கிளிக் செய்யவும்",
+    "ja":      "タップまたはクリックで音声オン",
+    "ko":      "탭하거나 클릭하면 소리가 켜집니다",
+    "zh-hans": "点按或点击以开启声音",
+    "zh-hant": "輕觸或點擊以開啟聲音",
+    "ar":      "انقر أو المس لتشغيل الصوت",
+    "he":      "הקש או לחץ להפעלת הצליל",
+    "fa":      "برای صدا لمس یا کلیک کنید",
+    "ur":      "آواز کے لیے ٹیپ یا کلک کریں"
+  };
+
+  // Języki pisane od prawej do lewej.
+  var RTL = { ar: 1, he: 1, fa: 1, ur: 1 };
+
+  // Stare kody języków, które nadal wysyłają niektóre przeglądarki i systemy.
+  var ALIAS = { iw: "he", in: "id", ji: "yi", no: "nb", tl: "fil", mo: "ro" };
+
+  // Komunikat diagnostyczny widzi tylko właściciel repo przy konfiguracji,
+  // więc wystarcza w tych dwóch językach, w których jest README.
+  var NOFILE = {
+    "en": "No video file — upload it to the repo (see README)",
+    "pl": "Brak pliku wideo — wgraj go do repo (patrz README)"
+  };
+
+  function pickLang() {
+    var list = (navigator.languages && navigator.languages.length)
+      ? navigator.languages : [navigator.language || "en"];
+    for (var i = 0; i < list.length; i++) {
+      var tag  = String(list[i]).toLowerCase();
+      var base = tag.split("-")[0];
+      base = ALIAS[base] || base;
+      if (base === "zh") {
+        // chiński zależy od pisma, nie od kraju
+        return /hant|tw|hk|mo/.test(tag) ? "zh-hant" : "zh-hans";
+      }
+      if (HINT[tag])  return tag;
+      if (HINT[base]) return base;
+    }
+    return "en";
+  }
+
+  var LANG = pickLang();
+  /* ================================================================== */
+
   var v    = document.getElementById("v");
   var hint = document.getElementById("hint");
+
+  document.documentElement.lang = LANG;
+  hint.textContent = HINT[LANG] || HINT.en;
+  if (RTL[LANG]) hint.setAttribute("dir", "rtl");
 
   var locked   = false; // dźwięk gra
   var blocked  = false; // przeglądarka odmówiła — czekamy na dotknięcie
@@ -267,7 +380,8 @@
   setTimeout(function () {
     if (v.networkState === 3 /* NETWORK_NO_SOURCE */ && v.readyState === 0) {
       noSource = true;
-      hint.textContent = "Brak pliku wideo — wgraj go do repo (patrz README)";
+      hint.removeAttribute("dir");
+      hint.textContent = NOFILE[LANG] || NOFILE.en;
       hint.classList.add("on");
     }
   }, 4000);
