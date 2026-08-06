@@ -25,11 +25,55 @@ jobs:
         with:
           lfs: true
 
+      # Wariant B — film leży w osobnym PRYWATNYM repozytorium.
+      # Ustaw zmienną MEDIA_REPO (Settings → Secrets and variables → Actions →
+      # Variables) na np. "EnderNoch/rickthatrolls-media" oraz sekret
+      # MEDIA_TOKEN z tokenem mającym prawo odczytu tamtego repo.
+      - name: Pobierz film z prywatnego repozytorium
+        if: vars.MEDIA_REPO != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.MEDIA_REPO }}
+          token: ${{ secrets.MEDIA_TOKEN }}
+          path: .media
+          lfs: true
+
+      # Wariant C — film leży pod prywatnym linkiem (S3, presigned URL, itp.).
+      # Ustaw sekret VIDEO_URL. Adres nigdy nie trafia do logów ani na stronę.
+      - name: Złóż katalog strony
+        env:
+          VIDEO_URL: ${{ secrets.VIDEO_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp index.html robots.txt .nojekyll _site/
+
+          if compgen -G "video.*" > /dev/null; then
+            cp video.* _site/
+            echo "::notice::film wzięty z tego repozytorium"
+          elif compgen -G ".media/video.*" > /dev/null; then
+            cp .media/video.* _site/
+            echo "::notice::film wzięty z prywatnego repozytorium ${{ vars.MEDIA_REPO }}"
+          elif [ -n "$VIDEO_URL" ]; then
+            # Rozszerzenie bierzemy z adresu (bez query stringa), bo od niego
+            # zależy, który <source type="..."> w index.html pasuje.
+            ext="${VIDEO_URL%%#*}"; ext="${ext%%\?*}"; ext="${ext##*.}"
+            case "$ext" in webm) ;; *) ext=mp4 ;; esac
+            curl -fsSL --retry 3 --retry-delay 2 "$VIDEO_URL" -o "_site/video.$ext"
+            echo "::notice::film pobrany z sekretu VIDEO_URL jako video.$ext"
+          else
+            echo "::warning::Brak pliku wideo. Strona wdroży się, ale pokaże komunikat o braku filmu. Patrz README, punkt 4."
+          fi
+
+          # Do artefaktu trafia wyłącznie zawartość _site — README, LICENSE
+          # i workflow nie są publikowane pod adresem strony.
+          ls -lhA _site/
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
 
       - id: deployment
         uses: actions/deploy-pages@v4

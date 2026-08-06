@@ -14,12 +14,22 @@ Działa na każdym urządzeniu z przeglądarką — nie ma tu żadnych bibliotek
 
 ## 1. Dodanie filmu
 
-Wrzuć plik do repozytorium jako **`video.mp4`** (w katalogu głównym) i gotowe — nic więcej nie trzeba zmieniać.
+Są trzy warianty. Wybierasz jeden — workflow sam wykrywa, który.
+
+| wariant | film widoczny w repo? | co ustawiasz |
+|---|---|---|
+| **A** — plik w tym repo | tak | nic, po prostu `video.mp4` w katalogu głównym |
+| **B** — osobne prywatne repo | **nie** | zmienna `MEDIA_REPO` + sekret `MEDIA_TOKEN` |
+| **C** — prywatny link | **nie** | sekret `VIDEO_URL` |
+
+Warianty B i C są opisane w punkcie 4. Domyślnie `.gitignore` blokuje `video.*`, żeby film nie wpadł do repo przez przypadek — jeśli świadomie wybierasz wariant A, usuń te linie z `.gitignore`.
+
+**Wariant A** (film w repo, najprościej):
 
 ```bash
 git checkout claude/video-player-no-controls-ljw4w5
 cp /ścieżka/do/twojego/filmu.mp4 video.mp4
-git add video.mp4
+git add -f video.mp4          # -f, bo .gitignore go blokuje
 git commit -m "Add video"
 git push -u origin claude/video-player-no-controls-ljw4w5
 ```
@@ -75,24 +85,47 @@ Workflow (`.github/workflows/pages.yml`) publikuje przy każdym pushu na `main` 
 
 Żeby to poszło na produkcję, gałąź `claude/video-player-no-controls-ljw4w5` trzeba zmergować do `main` (albo w workflow zmienić `branches: [main]` na swoją gałąź).
 
-## 4. ⚠️ Plik wideo NIE będzie prywatny
+## 4. Film poza repozytorium
 
-Pisałeś, że plik nie może być publiczny — i tu jest realny konflikt z GitHub Pages, więc mówię wprost:
+Najpierw rozdzielmy dwie rzeczy, bo tylko jedna z nich jest wykonalna:
 
-**Strona GitHub Pages na koncie Free i Pro jest zawsze publiczna, nawet jeśli repozytorium jest prywatne.** Każdy, kto zna adres, może wejść i pobrać `video.mp4` bezpośrednio. Prywatne Pages (z logowaniem do organizacji) to funkcja wyłącznie GitHub Enterprise Cloud.
+| | wykonalne? |
+|---|---|
+| film **nie leży w repozytorium** i nie widać go w historii gita | **tak** — warianty B i C poniżej |
+| film **nie da się pobrać** z opublikowanej strony | **nie** — na GitHub Pages nigdy |
 
-Co jest w tym repo zrobione, żeby przynajmniej ograniczyć zasięg:
+Drugiego nie da się obejść żadnym kodem: skoro przeglądarka film odtwarza, to znaczy, że go pobrała. Adres `…/video.mp4` zawsze zwróci plik, a strona Pages na koncie Free i Pro jest publiczna **nawet gdy repozytorium jest prywatne** (prywatne Pages z logowaniem to wyłącznie GitHub Enterprise Cloud). Jeśli film naprawdę nie może wyciec, Pages jest złym miejscem — wtedy potrzebny jest hosting z autoryzacją: Cloudflare Access, S3 z podpisanymi linkami albo prywatny link z Vimeo.
+
+Pierwsze natomiast robi za ciebie workflow. Film jest dokładany dopiero w trakcie wdrożenia, więc nie ma go ani w plikach repo, ani w historii gita, ani w limicie 100 MB.
+
+### Wariant B — osobne prywatne repozytorium (za darmo)
+
+Prywatne repozytoria są bezpłatne, więc film może leżeć w takim, a publiczne repo ze stroną tylko po niego sięga.
+
+1. Załóż prywatne repo, np. `rickthatrolls-media`, i wrzuć do niego `video.mp4`.
+2. Wygeneruj token z dostępem do odczytu tamtego repo: **Settings → Developer settings → Personal access tokens → Fine-grained tokens**, `Repository access` = tylko `rickthatrolls-media`, uprawnienie `Contents: Read-only`.
+3. W tym repo: **Settings → Secrets and variables → Actions**
+   - zakładka **Variables** → `MEDIA_REPO` = `EnderNoch/rickthatrolls-media`
+   - zakładka **Secrets** → `MEDIA_TOKEN` = wygenerowany token
+
+Workflow zrobi wtedy `checkout` prywatnego repo do katalogu roboczego i skopiuje film do `_site/`.
+
+### Wariant C — prywatny link
+
+Film leży gdziekolwiek, skąd da się go pobrać jednym `curl` (S3 presigned URL, Dropbox z `?dl=1`, własny serwer). W **Settings → Secrets and variables → Actions → Secrets** ustaw `VIDEO_URL` na ten adres. Sekret nie pojawia się w logach ani na stronie.
+
+Format rozpoznawany jest po rozszerzeniu w adresie — query string i fragment są pomijane, więc `…/film.webm?token=abc` zadziała poprawnie. Adres **bez** rozszerzenia (np. `…/download?id=99`) zostanie zapisany jako `video.mp4`; jeśli to w rzeczywistości webm, przeglądarka go pominie z powodu niezgodnego `type`. Nieosiągalny adres przerywa wdrożenie z błędem, zamiast po cichu opublikować pustą stronę.
+
+### Co jeszcze ogranicza zasięg
+
+Niezależnie od wariantu, w repo jest już:
 
 - `robots.txt` z `Disallow: /` oraz `<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">` — strona nie trafia do Google,
-- `<meta name="referrer" content="no-referrer">` — adres nie wycieka w nagłówkach do stron, na które ktoś przejdzie dalej,
-- pusty `<title>` — nic nie mówi o zawartości.
+- `<meta name="referrer" content="no-referrer">` — adres nie wycieka w nagłówku do stron, na które ktoś przejdzie dalej,
+- pusty `<title>` — zakładka nic nie mówi o zawartości,
+- do artefaktu Pages trafia **wyłącznie** `index.html`, `robots.txt`, `.nojekyll` i film — README, LICENSE i workflow nie są publikowane pod adresem strony.
 
-Co możesz dorobić sam, jeśli to ma wystarczyć jako „nie do znalezienia":
-
-- nazwij plik losowym ciągiem, np. `a7f3c91e4b2d.mp4`, i podmień `<source src="...">` — wtedy trzeba znać dokładny URL, a nie tylko domenę,
-- nazwij tak samo podstronę (`a7f3c91e4b2d/index.html` zamiast `index.html`) — wtedy sam adres repo nic nie daje.
-
-To jest zabezpieczenie przez nieoczywistość, nie przez uprawnienia. **Jeśli film naprawdę nie może wyciec, GitHub Pages nie jest właściwym miejscem** — potrzebny jest hosting z logowaniem (np. Cloudflare Access, S3 z podpisanymi linkami, albo prywatny link z Vimeo).
+Jeśli ma to wystarczyć jako „nie do znalezienia", nazwij plik losowym ciągiem (np. `a7f3c91e4b2d.mp4`, podmieniając `<source src="...">`) i tak samo nazwij podstronę — wtedy sam adres repo nic nie daje. To zabezpieczenie przez nieoczywistość, nie przez uprawnienia.
 
 ## 5. Dźwięk i autoplay — jedyne ograniczenie, którego nie da się obejść
 
@@ -129,7 +162,11 @@ W JS zostały tylko trzy rzeczy, których nie da się osiągnąć samym brakiem 
 
 Czego zatrzymać się **nie da** i nie ma na to sposobu w żadnej technologii webowej: zamknięcie karty, przycisk wstecz, wyciszenie karty z poziomu przeglądarki lub systemu, wyłączenie JS, DevTools, rozszerzenia. Zgodnie z tym, co pisałeś — to jest oczekiwane wyjście ze strony.
 
-## 7. Skalowanie i orientacja
+## 7. Pętla, skalowanie i orientacja
+
+Zapętlenie robi natywny atrybut `loop` na `<video>` — bez linijki JS-a. Sprawdzone na Chromium przez 20 sekund na trzysekundowym filmie: **6 pełnych okrążeń, zero zdarzeń `ended`, zero `pause`**, film ani razu się nie zatrzymał. Przeglądarka po prostu wraca do zera i leci dalej.
+
+Jeśli zależy ci na tym, żeby przejście przez koniec pętli było niewidoczne, warto przy kodowaniu wymusić klatkę kluczową co sekundę (`-g 30 -keyint_min 30` w `ffmpeg`) i zadbać, żeby pierwsza i ostatnia klatka wyglądały podobnie. Sam mechanizm pętli nie ma tu nic do rzeczy — to kwestia materiału.
 
 - `position: fixed` + `100dvw`/`100dvh` — `dvh` ignoruje chowające się paski przeglądarki na mobile, więc nie ma „skoku" wysokości przy scrollu.
 - `object-fit: cover` — kadr jest przycinany tak, żeby wypełnić okno. **Żadnych czarnych pasków w żadnej orientacji.** Jeśli wolisz zobaczyć cały kadr i zgodzić się na paski, zmień w `index.html` `object-fit: cover` na `contain`.

@@ -1,0 +1,6 @@
+# Film NIE trafia do repozytorium — dostarcza go workflow przy wdrożeniu
+# (patrz README, punkt 4). Jeśli wolisz jednak trzymać go w repo,
+# usuń poniższe linie.
+video.*
+media/
+_site/
