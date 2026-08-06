@@ -16,11 +16,13 @@ Działa na każdym urządzeniu z przeglądarką — nie ma tu żadnych bibliotek
 
 Są trzy warianty. Wybierasz jeden — workflow sam wykrywa, który.
 
-| wariant | film widoczny w repo? | co ustawiasz |
-|---|---|---|
-| **A** — plik w tym repo | tak | nic, po prostu `video.mp4` w katalogu głównym |
-| **B** — osobne prywatne repo | **nie** | zmienna `MEDIA_REPO` + sekret `MEDIA_TOKEN` |
-| **C** — prywatny link | **nie** | sekret `VIDEO_URL` |
+| wariant | film widoczny w repo? | limit 100 MB? | co ustawiasz |
+|---|---|---|---|
+| **A** — plik w tym repo | tak | **tak** | nic, po prostu `video.mp4` w katalogu głównym |
+| **B** — osobne prywatne repo | **nie** | **tak** | zmienna `MEDIA_REPO` + sekret `MEDIA_TOKEN` |
+| **C** — prywatny link | **nie** | nie | sekret `VIDEO_URL` |
+
+Limit 100 MB na plik obowiązuje w gicie zawsze — także w repozytorium prywatnym. Jeśli twój film jest większy, najpierw przepuść go przez `compress.sh` (punkt 2), inaczej zostaje tylko wariant C.
 
 Warianty B i C są opisane w punkcie 4. Domyślnie `.gitignore` blokuje `video.*`, żeby film nie wpadł do repo przez przypadek — jeśli świadomie wybierasz wariant A, usuń te linie z `.gitignore`.
 
@@ -47,35 +49,42 @@ Obsługiwane są też inne nazwy/ścieżki — `index.html` po kolei próbuje:
 
 Jeśli chcesz inną nazwę, zmień linie `<source src="...">` w `index.html` (są opisane komentarzem). Gdy żaden plik nie zostanie znaleziony, strona po ~4 s wyświetla komunikat zamiast czarnego ekranu.
 
-## 2. Limity rozmiaru
+## 2. Limity rozmiaru i kompresja
 
-To jest ten punkt, o który pytałeś — **30 MB to limit załącznika w czacie, a nie limit GitHuba**. Na GitHubie obowiązuje:
+| limit | wartość | dotyczy |
+|---|---|---|
+| upload przez stronę GitHuba | **25 MB** | „Yowza, that's a big file" |
+| ostrzeżenie przy `git push` | 50 MB | |
+| **twarde odrzucenie przez gita** | **100 MB** | tak samo w repo publicznym i **prywatnym** |
+| zalecany rozmiar całej strony Pages | 1 GB | |
+| transfer Pages | 100 GB / miesiąc (miękki) | |
 
-| limit | wartość |
-|---|---|
-| ostrzeżenie przy `git push` | 50 MB |
-| **twarde odrzucenie pliku** | **100 MB** |
-| zalecany rozmiar całej strony Pages | 1 GB |
-| transfer Pages | 100 GB / miesiąc (miękki) |
+Kluczowe: **limit 100 MB obowiązuje w każdym repozytorium**, więc trzymanie filmu w osobnym prywatnym repo (wariant B) nie omija go ani trochę. Plik ponad 100 MB ma dokładnie dwie drogi: skompresować albo wyprowadzić poza gita (wariant C).
 
-Czyli: **plik do 100 MB wrzucasz normalnym `git push`** i nic więcej nie musisz robić.
-
-Jeśli film jest większy niż 100 MB, masz dwie drogi:
-
-**a) Skompresuj** (zwykle wystarcza — 1080p, kilka minut, CRF 26 to zwykle 30–60 MB):
+### compress.sh
 
 ```bash
-ffmpeg -i oryginal.mp4 \
-  -vcodec libx264 -crf 26 -preset slow -pix_fmt yuv420p \
-  -vf "scale='min(1920,iw)':-2" \
-  -acodec aac -b:a 128k \
-  -movflags +faststart \
-  video.mp4
+./compress.sh moj-film.mp4          # -> video.mp4 o rozmiarze ~45 MB
+./compress.sh moj-film.mp4 80       # -> ~80 MB
 ```
 
-`-movflags +faststart` jest istotny: przenosi indeks na początek pliku, dzięki czemu film startuje od razu, zamiast po pobraniu całości.
+Dwa przebiegi x264 z policzonym bitratem, więc rozmiar wyjściowy jest **przewidywalny** — inaczej niż przy CRF, gdzie wychodzi, ile wyjdzie. Skrypt sam odczytuje długość i rozdzielczość, przelicza bitrate pod zadany limit, skaluje do maks. 1080p i ostrzega, jeśli wyliczony bitrate jest za niski dla materiału.
 
-**b) Git LFS** — workflow w `.github/workflows/pages.yml` robi `checkout` z `lfs: true`, więc pliki LFS są rozpakowywane przed publikacją i **działają** (przy trybie „Deploy from a branch" nie działają — Pages serwuje wtedy sam wskaźnik LFS zamiast filmu). Uwaga: darmowy limit LFS to 1 GB miejsca i 1 GB transferu miesięcznie, co przy stronie z filmem kończy się bardzo szybko.
+Bitrate to `rozmiar / długość`, więc długość filmu decyduje o wszystkim:
+
+| długość | cel 45 MB | jakość przy 1080p |
+|---|---|---|
+| 2 min | ~2900 kb/s | bardzo dobra |
+| 5 min | ~1060 kb/s | dobra |
+| 20 min | ~170 kb/s | zła — skróć materiał albo zejdź z rozdzielczości |
+
+Skrypt wymaga `ffmpeg` i `ffprobe` (Ubuntu: `apt install ffmpeg`, macOS: `brew install ffmpeg`). Jeśli wolisz klikać, to samo robi **HandBrake** — preset *Fast 1080p30*, tryb *Average Bitrate* z wartością z tabeli powyżej, plus zaznaczone *Web Optimized*.
+
+Kompresja opłaca się nawet gdy plik zmieściłby się w limicie: przy 100 GB transferu miesięcznie film 45 MB wystarcza na ~2270 wejść, a 244 MB tylko na ~420. Widz na komórce też pobiera każdy z tych megabajtów.
+
+### Git LFS — zwykle zła odpowiedź
+
+Workflow robi `checkout` z `lfs: true`, więc pliki LFS są rozpakowywane przed publikacją i **działają** (przy trybie „Deploy from a branch" nie działają — Pages serwuje wtedy sam wskaźnik LFS zamiast filmu). Problem w tym, że darmowy limit LFS to 1 GB miejsca i **1 GB transferu miesięcznie**: przy filmie 240 MB kończy się po czterech pobraniach. Dla tego zastosowania LFS praktycznie zawsze przegrywa z kompresją albo z wariantem C.
 
 ## 3. Włączenie GitHub Pages
 
