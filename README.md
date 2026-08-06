@@ -2,8 +2,8 @@
 
 Jednoplikowa strona na GitHub Pages, która po wejściu odtwarza film:
 
-- **bez żadnych kontrolek** — brak paska, brak pauzy, brak suwaka głośności, brak przycisku pełnego ekranu,
-- **non stop w pętli** — próba pauzy (klawiatura, klawisze multimedialne, ekran blokady, słuchawki, prawy klik) jest natychmiast cofana,
+- **bez żadnych kontrolek** — nie dlatego, że są blokowane, tylko dlatego, że ich nie ma: brak atrybutu `controls`, brak fokusu, brak celu dla kursora,
+- **non stop w pętli** — jedyne, co jeszcze potrafi zatrzymać film (uśpienie ekranu, klawisz multimedialny), wraca do odtwarzania,
 - **na całe okno** — `object-fit: cover`, więc nie ma czarnych pasków; obrót telefonu, zmiana rozmiaru okna i chowające się paski przeglądarki są obsłużone,
 - **na domyślnej głośności** — z zastrzeżeniem opisanym niżej (autoplay z dźwiękiem),
 - jedyne wyjście to zamknięcie karty / cofnięcie się ze strony.
@@ -106,25 +106,28 @@ Strona radzi sobie z tym tak:
 
 Od tego momentu głośność jest zablokowana: każda próba zmiany lub wyciszenia jest cofana przez handler `volumechange`.
 
-## 6. Co dokładnie jest zablokowane
+## 6. Dlaczego nie ma czego blokować
 
-| próba | reakcja |
+Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnica: blokada to kod, który trzeba utrzymywać i który zawsze da się obejść, a brak funkcji nie ma jak zawieść.
+
+| czego nie ma | dlaczego |
 |---|---|
-| pauza (`pause` event, z dowolnego źródła) | natychmiastowy `play()` |
-| spacja, `k`, `p`, Enter | `preventDefault` + `play()` |
-| `m` (mute), `f` (fullscreen), `c` (napisy) | `preventDefault` |
-| strzałki, cyfry, `j`/`l`, Home/End/PageUp/PageDown | `preventDefault` (brak przewijania) |
-| klawisze multimedialne, ekran blokady, przycisk na słuchawkach | `mediaSession` — handlery `pause`/`stop`/`seek` wznawiają odtwarzanie |
-| prawy klik / long press (menu „Pobierz wideo") | `contextmenu` zablokowane |
-| kliknięcie w wideo | warstwa `#shield` przechwytuje, `pointer-events: none` na `<video>` |
-| przeciągnięcie wideo do innej karty | `dragstart` zablokowane |
-| Picture-in-Picture, AirPlay/Cast | `disablepictureinpicture`, `disableremoteplayback` |
-| przewijanie strony, pinch-zoom | `overflow: hidden`, `touch-action: none`, `user-scalable=no` |
-| powrót z tła / odblokowanie telefonu | `visibilitychange` → `play()` |
-| zawieszony bufor, błąd sieci | `stalled`/`suspend`/`error` → ponowny `play()` |
-| cokolwiek innego | watchdog co 500 ms sprawdza `v.paused` i wznawia |
+| pasek sterowania, pauza, suwak głośności, przewijanie | brak atrybutu `controls` — przeglądarka nie rysuje żadnego UI |
+| reakcja na klawiaturę (spacja, `k`, `m`, `f`, strzałki…) | `<video>` bez `controls` **nie przyjmuje fokusu**, więc klawisze nigdy do niego nie trafiają |
+| menu kontekstowe „Pokaż elementy sterujące", „Zapisz wideo jako…", „Zapętl" | `pointer-events: none` — wideo nie jest celem trafienia, prawy klik ląduje na `<body>` |
+| Picture-in-Picture, AirPlay, Chromecast | atrybuty `disablepictureinpicture` i `disableremoteplayback` |
+| przewijanie strony, pinch-zoom, zaznaczanie | `overflow: hidden`, `user-select: none`, `user-scalable=no` |
+| duży przycisk „play" iOS Safari | `::-webkit-media-controls-start-playback-button { display: none }` |
 
-Czego zablokować się **nie da** (i nie ma na to sposobu w żadnej technologii webowej): zamknięcie karty, przycisk wstecz, `Esc` wychodzący z pełnego ekranu, wyciszenie karty z poziomu przeglądarki lub systemu, wyłączenie JS, DevTools i rozszerzenia. Zgodnie z tym, co pisałeś — to jest oczekiwane wyjście ze strony.
+Sprawdziłem to na Chromium zamiast zakładać: goły `<video>` bez `controls` po `.focus()` zostawia `document.activeElement` na `BODY` i nie reaguje na spację, `k`, `p`, `m`, `f`, strzałki, `j`/`l` ani cyfry — te skróty to funkcje odtwarzacza YouTube, nie przeglądarki. Klik i dwuklik też nic nie robią. Kod, który je „blokował", bronił przed czymś, czego nie ma.
+
+W JS zostały tylko trzy rzeczy, których nie da się osiągnąć samym brakiem funkcji:
+
+1. **Powrót po pauzie.** Strona nie ma czym zatrzymać filmu, ale przeglądarka ma: uśpienie ekranu, przełączenie karty, wyciszenie w tle. Leci wtedy zdarzenie `pause` i trzeba wrócić do odtwarzania — plus `visibilitychange` i `pageshow` przy powrocie oraz `stalled`/`error` przy zerwanej sieci.
+2. **Klawisze multimedialne, ekran blokady, przycisk na słuchawkach.** Jedyne sterowanie spoza strony, którego nie da się usunąć. Handlery `mediaSession` mają pauzę przemapowaną na odtwarzanie.
+3. **Autoodtwarzanie z dźwiękiem** — opisane w punkcie 5.
+
+Czego zatrzymać się **nie da** i nie ma na to sposobu w żadnej technologii webowej: zamknięcie karty, przycisk wstecz, wyciszenie karty z poziomu przeglądarki lub systemu, wyłączenie JS, DevTools, rozszerzenia. Zgodnie z tym, co pisałeś — to jest oczekiwane wyjście ze strony.
 
 ## 7. Skalowanie i orientacja
 
@@ -138,9 +141,8 @@ Czego zablokować się **nie da** (i nie ma na to sposobu w żadnej technologii 
 Na górze skryptu w `index.html`:
 
 ```js
-var VOLUME          = 1.0;   // głośność
+var VOLUME          = 1.0;   // głośność po odblokowaniu dźwięku
 var AUTO_FULLSCREEN = false; // true = pierwsze dotknięcie wchodzi w pełny ekran
-var WATCHDOG_MS     = 500;   // co ile ms pilnować, że film leci
 ```
 
 `AUTO_FULLSCREEN = true` dodatkowo próbuje zablokować orientację w poziomie (`screen.orientation.lock`) — działa na Androidzie, iOS to ignoruje.

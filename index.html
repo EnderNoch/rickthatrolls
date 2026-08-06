@@ -11,62 +11,50 @@
   html, body {
     margin: 0;
     padding: 0;
-    width: 100%;
     height: 100%;
     background: #000;
-    overflow: hidden;
+    overflow: hidden;            /* strona nie ma czego przewijać */
     overscroll-behavior: none;
-    touch-action: none;
     -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
   }
 
-  /* Wideo wypełnia całe okno w każdej orientacji.
-     inset:0 + 100%/100% podąża za realnym rozmiarem okna,
-     więc obrót telefonu / pojawienie się pasków przeglądarki
-     jest obsłużone bez żadnego JS-a. */
   #v {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    /* dvh = dynamic viewport height: na mobile ignoruje chowające się
-       paski przeglądarki. Fallback wyżej dla starszych silników. */
+    /* dvw/dvh ignorują chowające się paski przeglądarki na mobile.
+       Linie wyżej są fallbackiem dla starszych silników. */
     width: 100dvw;
     height: 100dvh;
-    object-fit: cover;      /* brak czarnych pasków (kadr jest przycinany) */
+    object-fit: cover;           /* wypełnia okno, brak czarnych pasków */
     object-position: center center;
     background: #000;
     display: block;
-    pointer-events: none;   /* klik/tap nie trafia w wideo => brak sterowania */
-    z-index: 0;
+
+    /* Kluczowa linia. Wideo przestaje być celem trafienia kursora/palca,
+       więc przeglądarka nie ma dla niego menu kontekstowego — pozycje
+       „Pokaż elementy sterujące", „Zapisz wideo jako…", „Zapętl",
+       „Obraz w obrazie" po prostu nie istnieją. Prawy klik trafia w <body>. */
+    pointer-events: none;
   }
 
-  /* Warstwa przechwytująca wszystkie kliknięcia/dotknięcia,
-     żeby nie dało się trafić w natywne kontrolki ani menu kontekstowe. */
-  #shield {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    width: 100dvw;
-    height: 100dvh;
-    z-index: 1;
-    background: transparent;
-  }
+  /* Duży przycisk odtwarzania, który iOS Safari dorysowuje na wideo,
+     gdy odmówi autoodtwarzania. Jedyna natywna kontrolka, która potrafi
+     pojawić się bez atrybutu controls. */
+  #v::-webkit-media-controls-start-playback-button,
+  #v::-webkit-media-controls { display: none !important; }
 
-  /* Dyskretna podpowiedź pokazywana WYŁĄCZNIE wtedy, gdy przeglądarka
-     zablokowała autoplay z dźwiękiem. Znika po pierwszym dotknięciu. */
+  /* Plakietka pokazywana tylko wtedy, gdy przeglądarka zablokowała dźwięk. */
   #hint {
     position: fixed;
     left: 50%;
     bottom: max(24px, env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%);
-    z-index: 2;
     padding: 10px 18px;
     border-radius: 999px;
     font: 500 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -81,17 +69,13 @@
     white-space: nowrap;
   }
   #hint.on { opacity: 1; visibility: visible; }
-
-  /* Ukrycie natywnych kontrolek tam, gdzie przeglądarka lubi je dorysować. */
-  #v::-webkit-media-controls,
-  #v::-webkit-media-controls-panel,
-  #v::-webkit-media-controls-start-playback-button,
-  #v::-webkit-media-controls-overlay-play-button,
-  #v::-webkit-media-controls-enclosure { display: none !important; opacity: 0 !important; }
 </style>
 </head>
 <body>
 
+<!-- Brak atrybutu controls => brak paska, pauzy, suwaka głośności i przewijania.
+     Taki element nie przyjmuje fokusu, więc nie reaguje też na klawiaturę.
+     disablepictureinpicture / disableremoteplayback usuwają PiP i AirPlay/Cast. -->
 <video id="v"
        autoplay
        loop
@@ -101,14 +85,12 @@
        preload="auto"
        disablepictureinpicture
        disableremoteplayback
-       controlslist="nodownload nofullscreen noplaybackrate noremoteplayback"
        x5-playsinline
        x5-video-player-type="h5-page">
   <!-- ================= KONFIGURACJA PLIKU WIDEO =================
-       Wrzuć swój plik do repo i wpisz go poniżej.
-       Przeglądarka bierze pierwsze źródło, które umie odtworzyć;
-       jeśli plik nie istnieje (404), automatycznie próbuje następne.
-       Możesz zostawić wszystkie linie — te bez pliku są ignorowane. -->
+       Wrzuć plik do repo i wpisz go poniżej. Przeglądarka bierze
+       pierwsze źródło, które umie odtworzyć; jeśli pliku nie ma (404),
+       przechodzi do następnego. Linie bez pliku są ignorowane. -->
   <source src="video.mp4"        type="video/mp4">
   <source src="media/video.mp4"  type="video/mp4">
   <source src="video.webm"       type="video/webm">
@@ -116,7 +98,6 @@
   <!-- ============================================================ -->
 </video>
 
-<div id="shield"></div>
 <div id="hint">Dotknij, aby włączyć dźwięk</div>
 
 <script>
@@ -124,94 +105,68 @@
   "use strict";
 
   /* ========================= USTAWIENIA ========================= */
-  var VOLUME          = 1.0;   // głośność "default" (1.0 = maksymalna dla tej karty)
-  var AUTO_FULLSCREEN = false; // true = przy pierwszym dotknięciu wchodzi w pełny ekran
-  var WATCHDOG_MS     = 500;   // co ile ms pilnować, że film leci
+  var VOLUME          = 1.0;   // głośność po odblokowaniu dźwięku
+  var AUTO_FULLSCREEN = false; // true = pierwsze dotknięcie wchodzi w pełny ekran
   /* ============================================================== */
 
-  var v      = document.getElementById("v");
-  var shield = document.getElementById("shield");
-  var hint   = document.getElementById("hint");
+  var v    = document.getElementById("v");
+  var hint = document.getElementById("hint");
 
-  var locked   = false; // dźwięk gra i pilnujemy, żeby nikt go nie zmienił
-  var blocked  = false; // przeglądarka odmówiła autoplay z dźwiękiem — czekamy na dotknięcie
-  var noSource = false; // brak pliku wideo — komunikat diagnostyczny zostaje na ekranie
-  var retries  = 0;     // nieudane próby startu z powodu przełączania <source>
+  var locked   = false; // dźwięk gra
+  var blocked  = false; // przeglądarka odmówiła — czekamy na dotknięcie
+  var noSource = false; // brak pliku wideo
+  var retries  = 0;
 
-  /* ---------- 1. Odtwarzanie non stop ---------- */
+  /* ---------- 1. Odtwarzanie bez końca ----------
+     Strona nie ma czym zatrzymać filmu, ale przeglądarka ma: telefon usypia
+     ekran, użytkownik przełącza kartę, system wycisza w tle. W każdym z tych
+     przypadków leci zdarzenie `pause` i trzeba wrócić do odtwarzania. */
 
-  function kick() {
-    // volume ustawiamy zawsze; muted zależy od tego, czy udało się odblokować dźwięk
-    try { v.volume = VOLUME; } catch (e) {}
+  function play() {
     var p = v.play();
     if (p && typeof p.catch === "function") p.catch(function () {});
-    return p;
   }
 
-  // Każda próba pauzy natychmiast cofnięta.
-  v.addEventListener("pause", function () {
-    if (!v.ended) kick();
-  });
+  v.addEventListener("pause", function () { play(); });
 
-  // Gdyby loop zawiódł (niektóre silniki gubią go przy zmianie sieci/kodeka).
-  v.addEventListener("ended", function () {
-    try { v.currentTime = 0; } catch (e) {}
-    kick();
-  });
-
-  // Powrót z tła / odblokowanie ekranu / zmiana karty.
   document.addEventListener("visibilitychange", function () {
-    if (!document.hidden) kick();
+    if (!document.hidden) play();
   });
-  window.addEventListener("pageshow", kick);
-  window.addEventListener("focus", kick);
+  window.addEventListener("pageshow", play);
 
-  // Błąd sieci w trakcie streamowania -> próbuj dalej.
-  v.addEventListener("stalled", kick);
-  v.addEventListener("suspend", kick);
-  v.addEventListener("error", function () { setTimeout(kick, 1000); });
+  // Zerwana sieć w trakcie streamowania.
+  v.addEventListener("stalled", play);
+  v.addEventListener("error", function () { setTimeout(play, 1000); });
 
-  // Jedyny komunikat w całej stronie: gdy w repo nie ma żadnego z plików
-  // wypisanych w <source>. Bez tego widać tylko czarny ekran i nie wiadomo,
-  // czy to problem z plikiem, czy film po prostu jest czarny.
-  setTimeout(function () {
-    if (v.networkState === 3 /* NETWORK_NO_SOURCE */ && v.readyState === 0) {
-      noSource = true;
-      hint.textContent = "Brak pliku wideo — wgraj go do repo (patrz README)";
-      hint.classList.add("on");
-    }
-  }, 4000);
+  // Klawisze multimedialne, ekran blokady, przycisk na słuchawkach — to jedyne
+  // sterowanie spoza strony, którego nie da się usunąć, więc pauza jest tu
+  // przemapowana na odtwarzanie.
+  if ("mediaSession" in navigator) {
+    ["play", "pause", "stop", "seekbackward", "seekforward", "seekto",
+     "previoustrack", "nexttrack"].forEach(function (a) {
+      try { navigator.mediaSession.setActionHandler(a, play); } catch (e) {}
+    });
+  }
 
-  // Strażnik: cokolwiek zatrzyma film (rozszerzenie, systemowe media keys,
-  // zawieszony bufor) — wraca do gry w ciągu pół sekundy.
-  setInterval(function () {
-    if (v.paused || v.ended) kick();
-    if (locked && !v.muted && Math.abs(v.volume - VOLUME) > 0.001) v.volume = VOLUME;
-  }, WATCHDOG_MS);
+  /* ---------- 2. Dźwięk ----------
+     Jedyne miejsce, gdzie strona musi coś obchodzić: przeglądarki blokują
+     autoodtwarzanie z dźwiękiem do pierwszej interakcji użytkownika. */
 
-  /* ---------- 2. Dźwięk ---------- */
-
-  // Przeglądarki blokują autoplay z dźwiękiem, dopóki użytkownik nie wejdzie
-  // w interakcję ze stroną. Strategia: najpierw próbujemy z dźwiękiem;
-  // jeśli odmówi — lecimy wyciszeni i włączamy dźwięk przy pierwszym
-  // dowolnym dotknięciu / kliknięciu / klawiszu.
   function soundOn() { locked = true; blocked = false; hideHint(); }
 
-  function soundRefused() {
-    // Realna blokada autoplay. Film leci dalej — tylko wyciszony.
+  function soundRefused() {   // film leci dalej, tylko wyciszony
     blocked = true;
     v.muted = true;
-    kick();
+    play();
     showHint();
   }
 
-  // fromGesture = true, gdy wywołane z interakcji użytkownika.
   function goUnmuted(fromGesture) {
     if (locked && !v.muted) return;
-    if (blocked && !fromGesture) return;   // bez gestu nie ma po co próbować dalej
+    if (blocked && !fromGesture) return;
     if (goUnmuted.busy) return;
     // Dopóki trwa wybór <source> (np. 404 na video.mp4), play() odrzuca promise
-    // z AbortError/NotSupportedError — to NIE jest blokada autoplay.
+    // z AbortError/NotSupportedError — to NIE jest blokada autoodtwarzania.
     if (v.readyState < 2 && !fromGesture) return;
 
     goUnmuted.busy = true;
@@ -219,7 +174,7 @@
     try { v.volume = VOLUME; } catch (e) {}
 
     var p = v.play();
-    if (!p || typeof p.then !== "function") {  // stare silniki bez promise
+    if (!p || typeof p.then !== "function") {   // stare silniki bez promise
       goUnmuted.busy = false;
       soundOn();
       return;
@@ -239,111 +194,48 @@
     });
   }
 
-  function unmuteNow() {
-    if (locked && !v.muted) return;
-    goUnmuted(true);
-    if (AUTO_FULLSCREEN) goFullscreen();
-  }
-
   function showHint() { if (v.muted && !noSource) hint.classList.add("on"); }
   function hideHint() { if (!noSource) hint.classList.remove("on"); }
 
-  // Pierwsza dowolna interakcja odblokowuje dźwięk (i nic poza tym).
-  ["pointerdown", "touchstart", "mousedown", "keydown", "click"].forEach(function (ev) {
-    window.addEventListener(ev, unmuteNow, { capture: true, passive: true });
+  // Dowolna interakcja włącza dźwięk. Nie trzeba w nic trafiać.
+  ["pointerdown", "touchstart", "mousedown", "keydown"].forEach(function (ev) {
+    window.addEventListener(ev, function () {
+      if (locked && !v.muted) return;
+      goUnmuted(true);
+      if (AUTO_FULLSCREEN) goFullscreen();
+    }, { capture: true, passive: true });
   });
 
-  // Blokada ręcznej zmiany głośności (np. przez rozszerzenie lub konsolę).
-  v.addEventListener("volumechange", function () {
-    if (!locked) return;
-    if (v.muted) { v.muted = false; }
-    if (Math.abs(v.volume - VOLUME) > 0.001) { v.volume = VOLUME; }
-  });
+  /* ---------- 3. Rozmiar okna i orientacja ----------
+     CSS radzi sobie sam wszędzie poza iOS Safari, które po obrocie przez
+     chwilę raportuje starą wysokość i zostawia pusty pasek. */
 
-  /* ---------- 3. Zero sterowania ---------- */
-
-  // Menu kontekstowe (prawy klik / long press) — źródło "Pobierz wideo", "Pauza".
-  window.addEventListener("contextmenu", function (e) { e.preventDefault(); }, { capture: true });
-
-  // Przechwycenie wszystkiego, co trafia w warstwę nad wideo.
-  ["click", "dblclick", "pointerdown", "pointerup", "touchstart", "touchend", "touchmove", "wheel"]
-    .forEach(function (ev) {
-      shield.addEventListener(ev, function (e) {
-        if (e.cancelable) e.preventDefault();
-      }, { passive: false });
-    });
-
-  // Skróty klawiszowe odtwarzacza: spacja, k (pauza), m (mute), f (fullscreen),
-  // strzałki (przewijanie), cyfry (skok procentowy), j/l (±10 s).
-  var BLOCKED = {
-    " ": 1, "Spacebar": 1, "k": 1, "K": 1, "m": 1, "M": 1, "f": 1, "F": 1,
-    "j": 1, "J": 1, "l": 1, "L": 1, "p": 1, "P": 1, "c": 1, "C": 1,
-    "ArrowLeft": 1, "ArrowRight": 1, "ArrowUp": 1, "ArrowDown": 1,
-    "Home": 1, "End": 1, "PageUp": 1, "PageDown": 1, "Enter": 1,
-    "MediaPlayPause": 1, "MediaPause": 1, "MediaStop": 1
-  };
-  for (var d = 0; d <= 9; d++) BLOCKED[String(d)] = 1;
-
-  window.addEventListener("keydown", function (e) {
-    if (BLOCKED[e.key]) {
-      e.preventDefault();
-      e.stopPropagation();
-      kick();
-    }
-  }, { capture: true });
-
-  // Klawisze multimedialne / sterowanie z ekranu blokady / słuchawek.
-  if ("mediaSession" in navigator) {
-    var noop = function () { kick(); };
-    ["pause", "stop", "seekbackward", "seekforward", "seekto",
-     "previoustrack", "nexttrack"].forEach(function (a) {
-      try { navigator.mediaSession.setActionHandler(a, noop); } catch (e) {}
-    });
-    try { navigator.mediaSession.setActionHandler("play", kick); } catch (e) {}
-  }
-
-  // Przeciąganie wideo na pulpit / do innej karty.
-  window.addEventListener("dragstart", function (e) { e.preventDefault(); }, { capture: true });
-
-  /* ---------- 4. Rozmiar okna i orientacja ---------- */
-
-  // CSS (position:fixed + 100dvw/100dvh + object-fit:cover) załatwia to sam,
-  // ale iOS Safari potrafi po obrocie zostawić nieaktualną wysokość.
-  // Wymuszamy przeliczenie i podajemy realną wysokość jako zmienną CSS.
   function fit() {
-    var h = window.innerHeight;
-    var w = window.innerWidth;
-    document.documentElement.style.setProperty("--vh", h + "px");
-    v.style.height = h + "px";
-    v.style.width  = w + "px";
-    shield.style.height = h + "px";
-    shield.style.width  = w + "px";
+    v.style.width  = window.innerWidth + "px";
+    v.style.height = window.innerHeight + "px";
   }
   fit();
   window.addEventListener("resize", fit);
   window.addEventListener("orientationchange", function () {
     fit();
-    // iOS raportuje nowe wymiary z opóźnieniem po animacji obrotu.
     setTimeout(fit, 100);
     setTimeout(fit, 400);
-    setTimeout(fit, 900);
+    setTimeout(fit, 900);   // po animacji obrotu
   });
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", fit);
-    window.visualViewport.addEventListener("scroll", fit);
   }
   if (screen.orientation && screen.orientation.addEventListener) {
     screen.orientation.addEventListener("change", function () {
-      fit(); setTimeout(fit, 300);
+      fit();
+      setTimeout(fit, 300);
     });
   }
+  v.addEventListener("loadedmetadata", fit);
 
-  // Brak przewijania strony w ogóle.
-  window.addEventListener("scroll", function () { window.scrollTo(0, 0); }, { passive: true });
+  /* ---------- 4. Dodatki ---------- */
 
-  /* ---------- 5. Dodatki ---------- */
-
-  // Ekran nie gaśnie w trakcie odtwarzania (jeśli przeglądarka pozwala).
+  // Ekran nie gaśnie w trakcie odtwarzania, jeśli przeglądarka na to pozwala.
   var wakeLock = null;
   function requestWakeLock() {
     if (!("wakeLock" in navigator)) return;
@@ -366,26 +258,28 @@
     }
   }
 
-  /* ---------- 6. Start ---------- */
+  // Jedyny komunikat na tej stronie: gdy w repo nie ma żadnego z plików
+  // wypisanych w <source>. Bez tego widać sam czarny ekran i nie wiadomo,
+  // czy to brak pliku, czy film zaczyna się od czarnej klatki.
+  setTimeout(function () {
+    if (v.networkState === 3 /* NETWORK_NO_SOURCE */ && v.readyState === 0) {
+      noSource = true;
+      hint.textContent = "Brak pliku wideo — wgraj go do repo (patrz README)";
+      hint.classList.add("on");
+    }
+  }, 4000);
 
-  v.addEventListener("loadedmetadata", fit);
+  /* ---------- 5. Start ----------
+     Próbę włączenia dźwięku podpinamy pod zdarzenia mediów, a nie pod
+     DOMContentLoaded — w chwili, gdy DOM jest gotowy, przeglądarka może
+     jeszcze przebierać w <source> i play() odrzuciłoby promise bez powodu. */
 
-  // Próbę startu z dźwiękiem podpinamy pod zdarzenia mediów, a nie pod
-  // DOMContentLoaded — w chwili, gdy DOM jest gotowy, przeglądarka może
-  // jeszcze przebierać w <source> i play() odrzuciłoby promise bez powodu.
   ["loadeddata", "canplay", "canplaythrough", "playing"].forEach(function (ev) {
-    v.addEventListener(ev, function () {
-      if (v.paused) kick();
-      goUnmuted(false);
-    });
+    v.addEventListener(ev, function () { goUnmuted(false); });
   });
-
-  kick();                                   // odtwarzanie od razu (wyciszone)
-  goUnmuted(false);                         // gdyby wideo było już w cache
-  window.addEventListener("load", function () {
-    if (v.paused) kick();
-    goUnmuted(false);
-  });
+  play();
+  goUnmuted(false);
+  window.addEventListener("load", function () { play(); goUnmuted(false); });
 })();
 </script>
 </body>
