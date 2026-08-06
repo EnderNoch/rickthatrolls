@@ -27,13 +27,17 @@ command -v ffmpeg  >/dev/null || die "brak ffmpeg (Ubuntu: apt install ffmpeg, m
 command -v ffprobe >/dev/null || die "brak ffprobe (jest w tej samej paczce co ffmpeg)"
 
 # ---- co mamy na wejściu ----
-# Dwa osobne wywołania, żeby nie zależeć od kolejności sekcji w wyjściu ffprobe.
-DURATION=$(ffprobe -v error -show_entries format=duration \
-             -of default=nw=1:nk=1 "$IN" || true)
-read -r WIDTH HEIGHT <<EOF
-$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height \
-    -of csv=p=0:s=' ' "$IN" || true)
-EOF
+# Osobne wywołania i wyłącznie format default=nw=1:nk=1. Pisarz csv zmieniał
+# składnię opcji między wersjami ffmpeg — na 8.x `csv=p=0:s=' '` już nie
+# przechodzi ("Failed to parse option string provided to textformat context").
+probe() {
+  ffprobe -v error "$@" -of default=nw=1:nk=1 "$IN" 2>/dev/null | head -1
+}
+DURATION=$(probe -show_entries format=duration)
+WIDTH=$(probe  -select_streams v:0 -show_entries stream=width)
+HEIGHT=$(probe -select_streams v:0 -show_entries stream=height)
+WIDTH=${WIDTH:-?}
+HEIGHT=${HEIGHT:-?}
 
 case "${DURATION:-}" in
   ''|N/A|0*) die "nie udało się odczytać długości filmu z $IN" ;;
