@@ -31,7 +31,10 @@
        Linie wyżej są fallbackiem dla starszych silników. */
     width: 100dvw;
     height: 100dvh;
-    object-fit: cover;           /* wypełnia okno, brak czarnych pasków */
+    /* contain = cały kadr widoczny zawsze, niezależnie od proporcji okna.
+       Nadmiar dopełnia czarne tło. Zamień na `cover`, jeśli wolisz, żeby
+       film wypełniał okno bez pasków kosztem przycięcia kadru. */
+    object-fit: contain;
     object-position: center center;
     background: #000;
     display: block;

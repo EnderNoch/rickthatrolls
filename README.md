@@ -4,7 +4,7 @@ Jednoplikowa strona na GitHub Pages, która po wejściu odtwarza film:
 
 - **bez żadnych kontrolek** — nie dlatego, że są blokowane, tylko dlatego, że ich nie ma: brak atrybutu `controls`, brak fokusu, brak celu dla kursora,
 - **non stop w pętli** — jedyne, co jeszcze potrafi zatrzymać film (uśpienie ekranu, klawisz multimedialny), wraca do odtwarzania,
-- **na całe okno** — `object-fit: cover`, więc nie ma czarnych pasków; obrót telefonu, zmiana rozmiaru okna i chowające się paski przeglądarki są obsłużone,
+- **na całe okno** — cały kadr widoczny przy każdym rozmiarze okna; obrót telefonu, zmiana rozmiaru okna i chowające się paski przeglądarki są obsłużone,
 - **na domyślnej głośności** — z zastrzeżeniem opisanym niżej (autoplay z dźwiękiem),
 - jedyne wyjście to zamknięcie karty / cofnięcie się ze strony.
 
@@ -178,7 +178,7 @@ Zapętlenie robi natywny atrybut `loop` na `<video>` — bez linijki JS-a. Spraw
 Jeśli zależy ci na tym, żeby przejście przez koniec pętli było niewidoczne, warto przy kodowaniu wymusić klatkę kluczową co sekundę (`-g 30 -keyint_min 30` w `ffmpeg`) i zadbać, żeby pierwsza i ostatnia klatka wyglądały podobnie. Sam mechanizm pętli nie ma tu nic do rzeczy — to kwestia materiału.
 
 - `position: fixed` + `100dvw`/`100dvh` — `dvh` ignoruje chowające się paski przeglądarki na mobile, więc nie ma „skoku" wysokości przy scrollu.
-- `object-fit: cover` — kadr jest przycinany tak, żeby wypełnić okno. **Żadnych czarnych pasków w żadnej orientacji.** Jeśli wolisz zobaczyć cały kadr i zgodzić się na paski, zmień w `index.html` `object-fit: cover` na `contain`.
+- `object-fit: contain` — **cały kadr jest widoczny przy dowolnym rozmiarze i proporcjach okna**, nic nie jest przycinane. Nadmiar miejsca dopełnia czarne tło, więc przy filmie poziomym na telefonie w pionie czarne obszary będą duże. Jeśli wolisz odwrotny kompromis — okno wypełnione bez pasków, ale z przyciętym kadrem — zmień w `index.html` `object-fit: contain` na `cover`.
 - Po `orientationchange` wymiary są przeliczane od razu oraz po 100/400/900 ms — iOS Safari raportuje nowy rozmiar dopiero po animacji obrotu i bez tego zostaje pusty pasek.
 - Nasłuch na `visualViewport` łapie też pojawienie się klawiatury i pasków systemowych.
 
