@@ -134,7 +134,8 @@ Whichever variant you pick, the repo already ships with:
 
 - `robots.txt` with `Disallow: /` and `<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">` — the site stays out of Google,
 - `<meta name="referrer" content="no-referrer">` — the address does not leak in the header to sites someone visits next,
-- an empty `<title>` — the tab says nothing about the content,
+- a `<title>` holding a single non-breaking space — the tab shows no text at all. Deleting the tag would be worse: with no title the browser falls back to putting the URL in the tab,
+- a transparent 1x1 PNG as `icon` and `apple-touch-icon`, given as a `data:` URI, so the tab carries no icon and the browser never requests `/favicon.ico` and never draws its fallback glyph,
 - the Pages artifact contains **only** `index.html`, `robots.txt`, `.nojekyll` and the video — README, LICENSE and the workflow are not served under the site address.
 
 If "hard to find" is enough for you, give the file a random name (e.g. `a7f3c91e4b2d.mp4`, updating `<source src="...">`) and name the subpage the same way — then knowing the repo address gets you nothing. That is security through obscurity, not through permissions.
@@ -170,7 +171,20 @@ Nothing here is "blocked" — the features simply do not exist. That distinction
 
 **Everything below was measured on Chromium only.** Firefox (Gecko) and Safari (WebKit) could not be run in the environment used.
 
-One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. So that row is handled by `preventDefault` — and only by that.
+One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. So that row is handled by `preventDefault`, and `volumechange` / `ratechange` handlers put the element back when Mute or Speed is used from it anyway.
+
+### What cannot be blocked, in any browser
+
+Everything above reaches the `<video>` element. These do not touch the element at all, so the page has no way to see them, let alone undo them:
+
+| | why the page cannot reach it |
+|---|---|
+| the speaker icon on the tab, and "Mute tab" in the tab's menu | browser chrome. Muting happens on the tab's audio output, after the element. `muted` and `volume` do not change and no event fires |
+| the OS volume mixer, hardware mute | outside the browser entirely |
+| closing the tab, the back button, disabling JS, DevTools | the intended ways out |
+| Shift + right-click opening the native menu | deliberate Gecko escape hatch; the actions taken from it are undone, the menu itself cannot be suppressed |
+
+The tab audio indicator in particular exists precisely so that a page cannot hide that it is making noise. There is no API to remove it, and playing the audio through Web Audio instead of the element does not avoid it either.
 
 **Shift + right-click in Firefox shows the native menu regardless of `preventDefault`**, and from there Mute and Speed do work. That is deliberately not defended against: it belongs in the same category as browser extensions and DevTools, which have been accepted escape hatches from the start. Handlers reverting `volumechange` and `ratechange` existed briefly and were removed — they only ever guarded a path an ordinary visitor never takes, and unused defensive code is the thing this project keeps deleting.
 
@@ -371,7 +385,8 @@ Niezależnie od wariantu, w repo jest już:
 
 - `robots.txt` z `Disallow: /` oraz `<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">` — strona nie trafia do Google,
 - `<meta name="referrer" content="no-referrer">` — adres nie wycieka w nagłówku do stron, na które ktoś przejdzie dalej,
-- pusty `<title>` — zakładka nic nie mówi o zawartości,
+- `<title>` z samą spacją nierozdzielającą — karta nie pokazuje żadnego napisu. Usunięcie znacznika byłoby gorsze: bez tytułu przeglądarka wpisuje w kartę adres strony,
+- przezroczysty PNG 1×1 jako `icon` i `apple-touch-icon`, podany jako `data:` URI, więc karta nie ma ikony, a przeglądarka w ogóle nie pyta o `/favicon.ico` i nie rysuje własnego zastępczego symbolu,
 - do artefaktu Pages trafia **wyłącznie** `index.html`, `robots.txt`, `.nojekyll` i film — README, LICENSE i workflow nie są publikowane pod adresem strony.
 
 Jeśli ma to wystarczyć jako „nie do znalezienia", nazwij plik losowym ciągiem (np. `a7f3c91e4b2d.mp4`, podmieniając `<source src="...">`) i tak samo nazwij podstronę — wtedy sam adres repo nic nie daje. To zabezpieczenie przez nieoczywistość, nie przez uprawnienia.
@@ -407,7 +422,20 @@ Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnic
 
 **Wszystko poniżej zmierzone jest wyłącznie na Chromium.** Firefoksa (Gecko) ani Safari (WebKit) nie dało się uruchomić w użytym środowisku.
 
-Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz obsługuje więc `preventDefault` — i tylko to.
+Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz obsługuje więc `preventDefault`, a handlery `volumechange` i `ratechange` przywracają element, gdy ktoś mimo wszystko użyje stamtąd „Wycisz" albo „Szybkość".
+
+### Czego nie da się zablokować w żadnej przeglądarce
+
+Wszystko powyżej dotyka elementu `<video>`. Poniższe nie dotykają go wcale, więc strona nie ma jak ich zobaczyć, a tym bardziej cofnąć:
+
+| | dlaczego strona tego nie dosięga |
+|---|---|
+| ikonka głośnika na karcie i „Wycisz kartę" z jej menu | interfejs przeglądarki. Wyciszenie działa na wyjściu audio karty, za elementem. `muted` ani `volume` się nie zmieniają i nie leci żadne zdarzenie |
+| systemowy mikser głośności, wyciszenie sprzętowe | całkowicie poza przeglądarką |
+| zamknięcie karty, przycisk wstecz, wyłączenie JS, DevTools | zamierzone wyjścia |
+| Shift + prawy klik otwierający natywne menu | celowa furtka Gecko; akcje z niego są cofane, samego menu ukryć się nie da |
+
+Wskaźnik dźwięku na karcie istnieje dokładnie po to, żeby strona nie mogła ukryć, że hałasuje. Nie ma API, które by go usuwało, a przepuszczenie dźwięku przez Web Audio zamiast przez element też go nie omija.
 
 **Shift + prawy klik w Firefoksie pokazuje natywne menu niezależnie od `preventDefault`**, a stamtąd „Wycisz" i „Szybkość" faktycznie działają. Celowo nie ma na to obrony: to ta sama kategoria co rozszerzenia przeglądarki i DevTools, przyjęte jako dopuszczalne wyjścia od początku. Handlery cofające `volumechange` i `ratechange` istniały przez chwilę i zostały usunięte — broniły wyłącznie ścieżki, którą zwykły odwiedzający nigdy nie idzie, a nieużywany kod obronny to dokładnie to, co ten projekt konsekwentnie kasuje.
 

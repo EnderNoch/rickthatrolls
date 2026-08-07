@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
 <meta name="referrer" content="no-referrer">
+<!-- Tytuł to sama spacja nierozdzielająca, a nie brak znacznika: przy braku
+     <title> przeglądarka wpisuje w kartę adres strony, czyli pokazuje WIĘCEJ,
+     nie mniej. Spacja daje kartę bez żadnego napisu. -->
 <title>&nbsp;</title>
+<!-- Przezroczysty PNG 1x1 zamiast domyślnej ikony. Bez tego przeglądarka
+     pyta o /favicon.ico, dostaje 404 i rysuje własny zastępczy symbol. -->
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
 <style>
   html, body {
     margin: 0;
@@ -280,6 +287,25 @@
       try { navigator.mediaSession.setActionHandler(a, play); } catch (e) {}
     });
   }
+
+  /* ---------- 1c. Cofanie zmian na elemencie ----------
+     Dosięga wszystkiego, co zmienia stan SAMEGO <video>: pozycje „Wycisz"
+     i „Szybkość" z natywnego menu Gecko (dostępnego przez Shift+prawy klik
+     mimo preventDefault niżej) oraz konsolę DevTools.
+
+     NIE dosięga wyciszenia całej karty — ikonka głośnika na karcie, „Wycisz
+     kartę" z menu karty i suwak systemowy działają poza elementem, nie
+     zmieniają jego `muted` ani `volume` i nie wywołują żadnego zdarzenia.
+     Strona nie ma jak się o nich dowiedzieć. */
+  v.addEventListener("volumechange", function () {
+    if (!locked) return;                   // przed odblokowaniem cisza jest zamierzona
+    if (v.muted) v.muted = false;
+    if (Math.abs(v.volume - VOLUME) > 0.001) v.volume = VOLUME;
+  });
+
+  v.addEventListener("ratechange", function () {
+    if (v.playbackRate !== 1) v.playbackRate = 1;
+  });
 
   /* ---------- 1b. Menu kontekstowe ----------
      Na Chromium `pointer-events: none` wystarcza: wideo nie jest celem
