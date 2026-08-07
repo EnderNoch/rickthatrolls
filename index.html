@@ -265,6 +265,22 @@
     });
   }
 
+  /* ---------- 1c. Cofanie zmian z menu Gecko ----------
+     Menu kontekstowe wideo w Firefoksie ma pozycje „Wycisz" i „Szybkość",
+     a Shift+prawy klik pokazuje je nawet mimo preventDefault niżej. To nie
+     jest teoretyczne — widać je na zrzucie z realnej przeglądarki, więc obie
+     zmiany są cofane. Pozycja „Wstrzymaj" jest już obsłużona przez handler
+     `pause`, a „Zapętl" jest zaznaczona i tak. */
+  v.addEventListener("volumechange", function () {
+    if (!locked) return;                   // przed odblokowaniem cisza jest zamierzona
+    if (v.muted) v.muted = false;
+    if (Math.abs(v.volume - VOLUME) > 0.001) v.volume = VOLUME;
+  });
+
+  v.addEventListener("ratechange", function () {
+    if (v.playbackRate !== 1) v.playbackRate = 1;
+  });
+
   /* ---------- 1b. Menu kontekstowe ----------
      Na Chromium `pointer-events: none` wystarcza: wideo nie jest celem
      trafienia, prawy klik ląduje na <body> i przeglądarka nie ma dla niego

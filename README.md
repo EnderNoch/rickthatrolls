@@ -161,12 +161,16 @@ Nothing here is "blocked" — the features simply do not exist. That distinction
 |---|---|
 | control bar, pause, volume slider, seeking | no `controls` attribute — the browser draws no UI at all |
 | keyboard response (space, `k`, `m`, `f`, arrows…) | a `<video>` without `controls` **cannot take focus**, so keys never reach it |
-| context menu entries "Show controls", "Save video as…", "Loop" | `pointer-events: none` makes the video not a hit target, **plus** an explicit `contextmenu` preventDefault, because the first alone was only verified on Chromium |
+| context menu entries "Show controls", "Save video as…", "Loop" | an explicit `contextmenu` preventDefault. `pointer-events: none` is **not** enough — Gecko shows its full video menu anyway |
 | Picture-in-Picture, AirPlay, Chromecast | the `disablepictureinpicture` and `disableremoteplayback` attributes |
 | page scrolling, pinch-zoom, text selection | `overflow: hidden`, `user-select: none`, `user-scalable=no` |
 | the large iOS Safari "play" button | `::-webkit-media-controls-start-playback-button { display: none }` |
 
-**Everything below was measured on Chromium only.** Firefox (Gecko) and Safari (WebKit) were not tested — there was no way to run them in the environment used. A report of the context menu still offering playback controls in Firefox is why that one row is now defended twice rather than relying on hit testing alone. Treat the rest as Chromium-verified, not cross-browser.
+**Everything below was measured on Chromium only.** Firefox (Gecko) and Safari (WebKit) could not be run in the environment used.
+
+One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. So that row is now handled by `preventDefault`, and the menu's Mute and Speed entries are reverted by `volumechange` and `ratechange` handlers.
+
+Two limits remain, and neither is fixable from a page: **Shift + right-click in Firefox shows the native menu regardless of `preventDefault`**, and `disablepictureinpicture` is a Chromium attribute that Gecko ignores, so the Picture-in-Picture entry stays in that menu. Treat the rest of this section as Chromium-verified, not cross-browser.
 
 This was verified against Chromium rather than assumed: a bare `<video>` without `controls` leaves `document.activeElement` on `BODY` even after `.focus()`, and does not react to space, `k`, `p`, `m`, `f`, arrows, `j`/`l` or digits — those shortcuts belong to the YouTube player, not to the browser. Click and double-click do nothing either. The code that used to "block" them was defending against something that does not exist.
 
@@ -382,12 +386,16 @@ Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnic
 |---|---|
 | pasek sterowania, pauza, suwak głośności, przewijanie | brak atrybutu `controls` — przeglądarka nie rysuje żadnego UI |
 | reakcja na klawiaturę (spacja, `k`, `m`, `f`, strzałki…) | `<video>` bez `controls` **nie przyjmuje fokusu**, więc klawisze nigdy do niego nie trafiają |
-| menu kontekstowe „Pokaż elementy sterujące", „Zapisz wideo jako…", „Zapętl" | `pointer-events: none` sprawia, że wideo nie jest celem trafienia, **plus** jawne `preventDefault` na `contextmenu`, bo samo pierwsze było sprawdzone tylko na Chromium |
+| menu kontekstowe „Pokaż elementy sterujące", „Zapisz wideo jako…", „Zapętl" | jawne `preventDefault` na `contextmenu`. Samo `pointer-events: none` **nie wystarcza** — Gecko i tak pokazuje pełne menu wideo |
 | Picture-in-Picture, AirPlay, Chromecast | atrybuty `disablepictureinpicture` i `disableremoteplayback` |
 | przewijanie strony, pinch-zoom, zaznaczanie | `overflow: hidden`, `user-select: none`, `user-scalable=no` |
 | duży przycisk „play" iOS Safari | `::-webkit-media-controls-start-playback-button { display: none }` |
 
-**Wszystko poniżej zmierzone jest wyłącznie na Chromium.** Firefox (Gecko) ani Safari (WebKit) nie były testowane — w użytym środowisku nie było jak ich uruchomić. Zgłoszenie, że w Firefoksie menu kontekstowe nadal daje sterowanie odtwarzaniem, jest powodem, dla którego akurat ten wiersz jest teraz zabezpieczony dwukrotnie, zamiast polegać na samym hit-testingu. Resztę traktuj jako sprawdzoną na Chromium, nie na wszystkich przeglądarkach.
+**Wszystko poniżej zmierzone jest wyłącznie na Chromium.** Firefoksa (Gecko) ani Safari (WebKit) nie dało się uruchomić w użytym środowisku.
+
+Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz obsługuje więc `preventDefault`, a pozycje „Wycisz" i „Szybkość" są cofane przez handlery `volumechange` i `ratechange`.
+
+Zostają dwa ograniczenia, których ze strony nie da się usunąć: **Shift + prawy klik w Firefoksie pokazuje natywne menu niezależnie od `preventDefault`**, a `disablepictureinpicture` to atrybut Chromium, który Gecko ignoruje, więc pozycja „Obraz w obrazie" w tym menu zostaje. Resztę tej sekcji traktuj jako sprawdzoną na Chromium, nie na wszystkich przeglądarkach.
 
 Sprawdziłem to na Chromium zamiast zakładać: goły `<video>` bez `controls` po `.focus()` zostawia `document.activeElement` na `BODY` i nie reaguje na spację, `k`, `p`, `m`, `f`, strzałki, `j`/`l` ani cyfry — te skróty to funkcje odtwarzacza YouTube, nie przeglądarki. Klik i dwuklik też nic nie robią. Kod, który je „blokował", bronił przed czymś, czego nie ma.
 
