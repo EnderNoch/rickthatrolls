@@ -168,9 +168,11 @@ Nothing here is "blocked" — the features simply do not exist. That distinction
 
 **Everything below was measured on Chromium only.** Firefox (Gecko) and Safari (WebKit) could not be run in the environment used.
 
-One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. So that row is now handled by `preventDefault`, and the menu's Mute and Speed entries are reverted by `volumechange` and `ratechange` handlers.
+One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. So that row is handled by `preventDefault` — and only by that.
 
-Two limits remain, and neither is fixable from a page: **Shift + right-click in Firefox shows the native menu regardless of `preventDefault`**, and `disablepictureinpicture` is a Chromium attribute that Gecko ignores, so the Picture-in-Picture entry stays in that menu. Treat the rest of this section as Chromium-verified, not cross-browser.
+**Shift + right-click in Firefox shows the native menu regardless of `preventDefault`**, and from there Mute and Speed do work. That is deliberately not defended against: it belongs in the same category as browser extensions and DevTools, which have been accepted escape hatches from the start. Handlers reverting `volumechange` and `ratechange` existed briefly and were removed — they only ever guarded a path an ordinary visitor never takes, and unused defensive code is the thing this project keeps deleting.
+
+`disablepictureinpicture` is also a Chromium attribute that Gecko ignores, so the Picture-in-Picture entry stays in that menu. Treat the rest of this section as Chromium-verified, not cross-browser.
 
 This was verified against Chromium rather than assumed: a bare `<video>` without `controls` leaves `document.activeElement` on `BODY` even after `.focus()`, and does not react to space, `k`, `p`, `m`, `f`, arrows, `j`/`l` or digits — those shortcuts belong to the YouTube player, not to the browser. Click and double-click do nothing either. The code that used to "block" them was defending against something that does not exist.
 
@@ -393,9 +395,11 @@ Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnic
 
 **Wszystko poniżej zmierzone jest wyłącznie na Chromium.** Firefoksa (Gecko) ani Safari (WebKit) nie dało się uruchomić w użytym środowisku.
 
-Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz obsługuje więc `preventDefault`, a pozycje „Wycisz" i „Szybkość" są cofane przez handlery `volumechange` i `ratechange`.
+Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz obsługuje więc `preventDefault` — i tylko to.
 
-Zostają dwa ograniczenia, których ze strony nie da się usunąć: **Shift + prawy klik w Firefoksie pokazuje natywne menu niezależnie od `preventDefault`**, a `disablepictureinpicture` to atrybut Chromium, który Gecko ignoruje, więc pozycja „Obraz w obrazie" w tym menu zostaje. Resztę tej sekcji traktuj jako sprawdzoną na Chromium, nie na wszystkich przeglądarkach.
+**Shift + prawy klik w Firefoksie pokazuje natywne menu niezależnie od `preventDefault`**, a stamtąd „Wycisz" i „Szybkość" faktycznie działają. Celowo nie ma na to obrony: to ta sama kategoria co rozszerzenia przeglądarki i DevTools, przyjęte jako dopuszczalne wyjścia od początku. Handlery cofające `volumechange` i `ratechange` istniały przez chwilę i zostały usunięte — broniły wyłącznie ścieżki, którą zwykły odwiedzający nigdy nie idzie, a nieużywany kod obronny to dokładnie to, co ten projekt konsekwentnie kasuje.
+
+`disablepictureinpicture` to też atrybut Chromium, który Gecko ignoruje, więc pozycja „Obraz w obrazie" w tym menu zostaje. Resztę tej sekcji traktuj jako sprawdzoną na Chromium, nie na wszystkich przeglądarkach.
 
 Sprawdziłem to na Chromium zamiast zakładać: goły `<video>` bez `controls` po `.focus()` zostawia `document.activeElement` na `BODY` i nie reaguje na spację, `k`, `p`, `m`, `f`, strzałki, `j`/`l` ani cyfry — te skróty to funkcje odtwarzacza YouTube, nie przeglądarki. Klik i dwuklik też nic nie robią. Kod, który je „blokował", bronił przed czymś, czego nie ma.
 
