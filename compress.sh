@@ -53,7 +53,42 @@ VIDEO_KBPS=$(awk -v mb="$TARGET_MB" -v d="$DURATION" -v a="$AUDIO_KBPS" -v o="$O
 
 [ "$VIDEO_KBPS" -gt 0 ] || die "film jest za długi na $TARGET_MB MB — zwiększ limit albo skróć materiał"
 
-printf 'Wyjście : %s — cel %s MB, bitrate wideo %s kb/s\n\n' "$OUT" "$TARGET_MB" "$VIDEO_KBPS"
+printf 'Wyjście : %s — cel %s MB, bitrate wideo %s kb/s\n' "$OUT" "$TARGET_MB" "$VIDEO_KBPS"
+
+# ---- wypalone czarne pasy ----
+# Materiał 4:3 dopchany do 16:9 (albo odwrotnie) ma czarne pasy w samych
+# klatkach. Żadne tło strony ich nie usunie, a bitrate idzie na kodowanie
+# czerni. cropdetect znajduje prostokąt z obrazem.
+#
+# Próbki z kilku miejsc i UNIA wyników, nie ostatni pomiar: przy ciemnej
+# scenie cropdetect potrafi uznać część obrazu za pas i wyciąć za dużo.
+CROP=""
+if [ "${NO_CROP:-0}" != "1" ]; then
+  X1=999999; Y1=999999; X2=0; Y2=0; ANY=0
+  for FRAC in 10 30 50 70 90; do
+    T=$(awk -v d="$DURATION" -v f="$FRAC" 'BEGIN { printf "%.1f", d * f / 100 }')
+    LINE=$(ffmpeg -hide_banner -ss "$T" -i "$IN" -vf cropdetect=24:2:0 \
+             -frames:v 60 -f null - 2>&1 | grep -o 'crop=[0-9]*:[0-9]*:[0-9]*:[0-9]*' | tail -1)
+    [ -n "$LINE" ] || continue
+    set -- $(echo "${LINE#crop=}" | tr ':' ' ')
+    [ "$1" -gt 0 ] 2>/dev/null || continue
+    ANY=1
+    [ "$3" -lt "$X1" ] && X1=$3
+    [ "$4" -lt "$Y1" ] && Y1=$4
+    [ $(( $3 + $1 )) -gt "$X2" ] && X2=$(( $3 + $1 ))
+    [ $(( $4 + $2 )) -gt "$Y2" ] && Y2=$(( $4 + $2 ))
+  done
+  if [ "$ANY" = "1" ]; then
+    CW=$(( X2 - X1 )); CH=$(( Y2 - Y1 ))
+    CW=$(( CW - CW % 2 )); CH=$(( CH - CH % 2 ))   # parzyste wymiary dla yuv420p
+    if [ "$CW" -lt "${WIDTH:-0}" ] || [ "$CH" -lt "${HEIGHT:-0}" ]; then
+      CROP="crop=$CW:$CH:$X1:$Y1"
+      printf 'Kadr    : wykryto czarne pasy — przycinam do %sx%s (offset %s,%s)\n' \
+             "$CW" "$CH" "$X1" "$Y1"
+    fi
+  fi
+fi
+echo
 
 if [ "$VIDEO_KBPS" -lt 800 ]; then
   echo "UWAGA: $VIDEO_KBPS kb/s to mało jak na $WIDTH""x""$HEIGHT."
@@ -70,6 +105,7 @@ fi
 # -movflags +faststart: indeks na początek pliku, żeby film ruszał od razu
 #            zamiast po pobraniu całości
 VF="scale='min($MAX_WIDTH,iw)':-2"
+[ -n "$CROP" ] && VF="$CROP,$VF"      # przycinanie zawsze przed skalowaniem
 COMMON=(-c:v libx264 -b:v "${VIDEO_KBPS}k" -preset slow -pix_fmt yuv420p
         -profile:v high -level 4.0 -vf "$VF" -g 30 -keyint_min 30)
 

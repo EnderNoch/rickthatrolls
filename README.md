@@ -71,6 +71,8 @@ The key point: **the 100 MB limit applies to every repository**, so keeping the 
 
 Two-pass x264 at a computed bitrate, so the output size is **predictable** — unlike CRF, where you get whatever you get. The script reads duration and resolution itself, works out the bitrate for the target size, scales down to at most 1080p, and warns when the computed bitrate is too low for the material.
 
+It also **removes black bars baked into the frames**. Material that is 4:3 padded out to 16:9 (or the reverse) carries the bars in the picture itself, where no page background can touch them and where bitrate is spent encoding black. `cropdetect` is sampled at five points across the video and the results are **unioned**, not taken from the last one — a dark scene can otherwise make it mistake picture for border and cut too much. Set `NO_CROP=1` to skip the detection. Cropping is a bonus for quality too: dropping 4:3 pillars from a 16:9 frame removes a quarter of the pixels, so the rest gets about a third more bitrate at the same target size.
+
 Bitrate is `size / duration`, so the length of the video decides everything:
 
 | duration | target 45 MB | quality at 1080p |
@@ -307,6 +309,8 @@ Kluczowe: **limit 100 MB obowiązuje w każdym repozytorium**, więc trzymanie f
 ```
 
 Dwa przebiegi x264 z policzonym bitratem, więc rozmiar wyjściowy jest **przewidywalny** — inaczej niż przy CRF, gdzie wychodzi, ile wyjdzie. Skrypt sam odczytuje długość i rozdzielczość, przelicza bitrate pod zadany limit, skaluje do maks. 1080p i ostrzega, jeśli wyliczony bitrate jest za niski dla materiału.
+
+Usuwa też **czarne pasy wypalone w klatkach**. Materiał 4:3 dopchany do 16:9 (albo odwrotnie) niesie pasy w samym obrazie — tam nie sięga żadne tło strony, a bitrate idzie na kodowanie czerni. `cropdetect` jest próbkowany w pięciu miejscach filmu, a wyniki brane jako **unia**, nie ostatni pomiar: przy ciemnej scenie potrafi uznać część obrazu za pas i wyciąć za dużo. `NO_CROP=1` pomija wykrywanie. Przycięcie opłaca się też jakościowo: usunięcie pasów 4:3 z kadru 16:9 zabiera jedną czwartą pikseli, więc reszta dostaje przy tym samym celu około jedną trzecią bitrate'u więcej.
 
 Bitrate to `rozmiar / długość`, więc długość filmu decyduje o wszystkim:
 
