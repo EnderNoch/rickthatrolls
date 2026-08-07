@@ -191,9 +191,17 @@ Looping is done by the native `loop` attribute on `<video>` — not a line of JS
 If you want the seam at the end of the loop to be invisible, force a keyframe every second when encoding (`-g 30 -keyint_min 30` in `ffmpeg`) and make the first and last frames look alike. The looping mechanism itself has nothing to do with it — that is a property of the material.
 
 - `position: fixed` plus `100dvw`/`100dvh` — `dvh` ignores collapsing browser chrome on mobile, so there is no height "jump" while scrolling.
-- `object-fit: contain` — **the whole frame stays visible at any window size and aspect ratio**, nothing is cropped. Leftover space is filled with black, so a landscape video on a phone held upright leaves large black areas. If you prefer the opposite trade-off — a filled window with no bars, but a cropped frame — change `object-fit: contain` to `cover` in `index.html`.
+- `object-fit: contain` — **the whole frame stays visible at any window size and aspect ratio**, nothing is cropped. Leftover space is left transparent, so a landscape video on a phone held upright leaves large empty areas. If you prefer the opposite trade-off — a filled window with no bars, but a cropped frame — change `object-fit: contain` to `cover` in `index.html`.
 - After `orientationchange` the dimensions are recomputed immediately and again after 100/400/900 ms — iOS Safari only reports the new size once the rotation animation finishes, and without this a blank strip is left behind.
 - A `visualViewport` listener also catches the keyboard and system bars appearing.
+
+### Embedding: the bars are transparent
+
+The letterboxed areas have no background of their own, so when the page is put in an iframe — a Home Assistant *Webpage* card with its background hidden, for example — whatever is behind the card shows through instead of a black slab.
+
+Standalone that would be wrong: with no background at all the browser paints its own canvas, which is white in light mode. A `color-scheme: dark` meta does not fix it either, because it forces an opaque dark canvas inside the iframe too, which is exactly what the transparency was for. So the page paints black on `documentElement` only when `window.self === window.top`, and leaves itself transparent when embedded. Cross-origin access to `window.top` can throw, and that case is treated as embedded.
+
+Verified by screenshot in both situations: inside an iframe over a magenta parent the bars are magenta up to the frame edge; opened directly they are black.
 
 ## 8. Configuration
 
@@ -418,9 +426,17 @@ Zapętlenie robi natywny atrybut `loop` na `<video>` — bez linijki JS-a. Spraw
 Jeśli zależy ci na tym, żeby przejście przez koniec pętli było niewidoczne, warto przy kodowaniu wymusić klatkę kluczową co sekundę (`-g 30 -keyint_min 30` w `ffmpeg`) i zadbać, żeby pierwsza i ostatnia klatka wyglądały podobnie. Sam mechanizm pętli nie ma tu nic do rzeczy — to kwestia materiału.
 
 - `position: fixed` + `100dvw`/`100dvh` — `dvh` ignoruje chowające się paski przeglądarki na mobile, więc nie ma „skoku" wysokości przy scrollu.
-- `object-fit: contain` — **cały kadr jest widoczny przy dowolnym rozmiarze i proporcjach okna**, nic nie jest przycinane. Nadmiar miejsca dopełnia czarne tło, więc przy filmie poziomym na telefonie w pionie czarne obszary będą duże. Jeśli wolisz odwrotny kompromis — okno wypełnione bez pasków, ale z przyciętym kadrem — zmień w `index.html` `object-fit: contain` na `cover`.
+- `object-fit: contain` — **cały kadr jest widoczny przy dowolnym rozmiarze i proporcjach okna**, nic nie jest przycinane. Nadmiar miejsca zostaje przezroczysty, więc przy filmie poziomym na telefonie w pionie puste obszary będą duże. Jeśli wolisz odwrotny kompromis — okno wypełnione bez pasków, ale z przyciętym kadrem — zmień w `index.html` `object-fit: contain` na `cover`.
 - Po `orientationchange` wymiary są przeliczane od razu oraz po 100/400/900 ms — iOS Safari raportuje nowy rozmiar dopiero po animacji obrotu i bez tego zostaje pusty pasek.
 - Nasłuch na `visualViewport` łapie też pojawienie się klawiatury i pasków systemowych.
+
+### Osadzanie: pasy są przezroczyste
+
+Obszary dopełniające kadr nie mają własnego tła, więc po wstawieniu strony w iframe — na przykład w kartę *Strona WWW* w Home Assistancie z ukrytym tłem — przez pasy widać to, co jest za kartą, zamiast czarnej płachty.
+
+Samodzielnie byłoby to błędem: bez żadnego tła przeglądarka maluje własne płótno, w trybie jasnym białe. Metatag `color-scheme: dark` też tego nie załatwia, bo wymusza nieprzezroczyste ciemne płótno również w iframie, czyli dokładnie to, czemu miała zapobiec przezroczystość. Dlatego strona maluje czerń na `documentElement` tylko wtedy, gdy `window.self === window.top`, a osadzona zostaje przezroczysta. Dostęp do `window.top` między originami potrafi rzucić wyjątkiem — ten przypadek traktujemy jako osadzenie.
+
+Sprawdzone zrzutami w obu sytuacjach: w iframie nad magentowym rodzicem pasy są magentowe aż do krawędzi kadru, a po otwarciu wprost są czarne.
 
 ## 8. Konfiguracja
 

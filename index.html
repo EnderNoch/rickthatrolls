@@ -5,14 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
 <meta name="referrer" content="no-referrer">
-<meta name="color-scheme" content="dark">
 <title>&nbsp;</title>
 <style>
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: #000;
+    /* Przezroczyste, a nie czarne — dzięki temu przy osadzeniu w iframie
+       (np. karta Home Assistanta z ukrytym tłem) przez pasy widać tło
+       rodzica. Stronie otwartej samodzielnie skrypt dokłada czarne tło,
+       bo domyślne płótno przeglądarki byłoby w trybie jasnym białe. */
+    background: transparent;
     overflow: hidden;            /* strona nie ma czego przewijać */
     overscroll-behavior: none;
     -webkit-user-select: none;
@@ -32,11 +35,11 @@
     width: 100dvw;
     height: 100dvh;
     /* contain = cały kadr widoczny zawsze, niezależnie od proporcji okna.
-       Nadmiar dopełnia czarne tło. Zamień na `cover`, jeśli wolisz, żeby
-       film wypełniał okno bez pasków kosztem przycięcia kadru. */
+       Wolne miejsce zostaje przezroczyste. Zamień na `cover`, jeśli wolisz,
+       żeby film wypełniał okno bez pasów kosztem przycięcia kadru. */
     object-fit: contain;
     object-position: center center;
-    background: #000;
+    background: transparent;
     display: block;
 
     /* Kluczowa linia. Wideo przestaje być celem trafienia kursora/palca,
@@ -224,6 +227,19 @@
 
   var v    = document.getElementById("v");
   var hint = document.getElementById("hint");
+
+  /* ---------- Tło pasów ----------
+     CSS zostawia tło przezroczyste, żeby przy osadzeniu w iframie (karta
+     „strona WWW" w Home Assistancie z ukrytym tłem) przez pasy widać było
+     tło rodzica. Ale samodzielnie otwarta strona dostałaby wtedy domyślne
+     płótno przeglądarki, czyli białe pasy w trybie jasnym. Metatag
+     color-scheme tego nie rozwiązuje: wymusza nieprzezroczyste ciemne
+     płótno także w iframie. Stąd rozróżnienie po tym, czy jesteśmy
+     osadzeni. Dostęp do window.top bywa blokowany między originami, więc
+     w razie wyjątku zakładamy osadzenie i zostawiamy przezroczystość. */
+  var samodzielnie;
+  try { samodzielnie = (window.self === window.top); } catch (e) { samodzielnie = false; }
+  if (samodzielnie) document.documentElement.style.background = "#000";
 
   document.documentElement.lang = LANG;
   hint.textContent = HINT[LANG] || HINT.en;
