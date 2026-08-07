@@ -1,4 +1,4 @@
-# [rickthatrollsC](https://https://endernoch.github.io/rickthatrolls/)
+# [rickthatrolls](https://https://endernoch.github.io/rickthatrolls/)
 
 **English** · [Polski ↓](#polski)
 
