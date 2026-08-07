@@ -161,10 +161,12 @@ Nothing here is "blocked" — the features simply do not exist. That distinction
 |---|---|
 | control bar, pause, volume slider, seeking | no `controls` attribute — the browser draws no UI at all |
 | keyboard response (space, `k`, `m`, `f`, arrows…) | a `<video>` without `controls` **cannot take focus**, so keys never reach it |
-| context menu entries "Show controls", "Save video as…", "Loop" | `pointer-events: none` — the video is not a hit target, right-click lands on `<body>` |
+| context menu entries "Show controls", "Save video as…", "Loop" | `pointer-events: none` makes the video not a hit target, **plus** an explicit `contextmenu` preventDefault, because the first alone was only verified on Chromium |
 | Picture-in-Picture, AirPlay, Chromecast | the `disablepictureinpicture` and `disableremoteplayback` attributes |
 | page scrolling, pinch-zoom, text selection | `overflow: hidden`, `user-select: none`, `user-scalable=no` |
 | the large iOS Safari "play" button | `::-webkit-media-controls-start-playback-button { display: none }` |
+
+**Everything below was measured on Chromium only.** Firefox (Gecko) and Safari (WebKit) were not tested — there was no way to run them in the environment used. A report of the context menu still offering playback controls in Firefox is why that one row is now defended twice rather than relying on hit testing alone. Treat the rest as Chromium-verified, not cross-browser.
 
 This was verified against Chromium rather than assumed: a bare `<video>` without `controls` leaves `document.activeElement` on `BODY` even after `.focus()`, and does not react to space, `k`, `p`, `m`, `f`, arrows, `j`/`l` or digits — those shortcuts belong to the YouTube player, not to the browser. Click and double-click do nothing either. The code that used to "block" them was defending against something that does not exist.
 
@@ -380,10 +382,12 @@ Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnic
 |---|---|
 | pasek sterowania, pauza, suwak głośności, przewijanie | brak atrybutu `controls` — przeglądarka nie rysuje żadnego UI |
 | reakcja na klawiaturę (spacja, `k`, `m`, `f`, strzałki…) | `<video>` bez `controls` **nie przyjmuje fokusu**, więc klawisze nigdy do niego nie trafiają |
-| menu kontekstowe „Pokaż elementy sterujące", „Zapisz wideo jako…", „Zapętl" | `pointer-events: none` — wideo nie jest celem trafienia, prawy klik ląduje na `<body>` |
+| menu kontekstowe „Pokaż elementy sterujące", „Zapisz wideo jako…", „Zapętl" | `pointer-events: none` sprawia, że wideo nie jest celem trafienia, **plus** jawne `preventDefault` na `contextmenu`, bo samo pierwsze było sprawdzone tylko na Chromium |
 | Picture-in-Picture, AirPlay, Chromecast | atrybuty `disablepictureinpicture` i `disableremoteplayback` |
 | przewijanie strony, pinch-zoom, zaznaczanie | `overflow: hidden`, `user-select: none`, `user-scalable=no` |
 | duży przycisk „play" iOS Safari | `::-webkit-media-controls-start-playback-button { display: none }` |
+
+**Wszystko poniżej zmierzone jest wyłącznie na Chromium.** Firefox (Gecko) ani Safari (WebKit) nie były testowane — w użytym środowisku nie było jak ich uruchomić. Zgłoszenie, że w Firefoksie menu kontekstowe nadal daje sterowanie odtwarzaniem, jest powodem, dla którego akurat ten wiersz jest teraz zabezpieczony dwukrotnie, zamiast polegać na samym hit-testingu. Resztę traktuj jako sprawdzoną na Chromium, nie na wszystkich przeglądarkach.
 
 Sprawdziłem to na Chromium zamiast zakładać: goły `<video>` bez `controls` po `.focus()` zostawia `document.activeElement` na `BODY` i nie reaguje na spację, `k`, `p`, `m`, `f`, strzałki, `j`/`l` ani cyfry — te skróty to funkcje odtwarzacza YouTube, nie przeglądarki. Klik i dwuklik też nic nie robią. Kod, który je „blokował", bronił przed czymś, czego nie ma.
 

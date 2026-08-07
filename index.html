@@ -265,6 +265,16 @@
     });
   }
 
+  /* ---------- 1b. Menu kontekstowe ----------
+     Na Chromium `pointer-events: none` wystarcza: wideo nie jest celem
+     trafienia, prawy klik ląduje na <body> i przeglądarka nie ma dla niego
+     menu z „Pokaż elementy sterujące" czy „Zapętl". Nie zweryfikowałem tego
+     na Gecko ani WebKicie, a zgłoszenie mówi, że tam menu ze sterowaniem
+     jednak wychodzi — więc blokujemy je wprost. Jedna linia, każdy silnik. */
+  window.addEventListener("contextmenu", function (e) {
+    e.preventDefault();
+  }, { capture: true });
+
   /* ---------- 2. Dźwięk ----------
      Jedyne miejsce, gdzie strona musi coś obchodzić: przeglądarki blokują
      autoodtwarzanie z dźwiękiem do pierwszej interakcji użytkownika. */
