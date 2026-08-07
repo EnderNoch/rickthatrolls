@@ -117,9 +117,10 @@
 (function () {
   "use strict";
 
-  /* ========================= USTAWIENIA ========================= */
-  var VOLUME          = 1.0;   // głośność po odblokowaniu dźwięku
-  var AUTO_FULLSCREEN = false; // true = pierwsze dotknięcie wchodzi w pełny ekran
+  /* ========================= USTAWIENIA =========================
+     Pełny ekran i blokada orientacji nie są ustawieniem — dzieją się
+     zawsze i nie da się ich wyłączyć bez edycji tego pliku. */
+  var VOLUME = 1.0;   // głośność po odblokowaniu dźwięku
   /* ============================================================== */
 
   /* ===================== TŁUMACZENIA PLAKIETKI =====================
@@ -313,12 +314,15 @@
   function showHint() { if (v.muted && !noSource) hint.classList.add("on"); }
   function hideHint() { if (!noSource) hint.classList.remove("on"); }
 
-  // Dowolna interakcja włącza dźwięk. Nie trzeba w nic trafiać.
+  // Dowolna interakcja włącza dźwięk i pełny ekran. Nie trzeba w nic trafiać.
   ["pointerdown", "touchstart", "mousedown", "keydown"].forEach(function (ev) {
     window.addEventListener(ev, function () {
+      // Pełny ekran przed sprawdzeniem dźwięku: gdy ktoś wyjdzie z pełnego
+      // ekranu, dźwięk już gra, a wcześniejszy wczesny return sprawiał, że
+      // żadne kolejne dotknięcie nie wracało do pełnego ekranu.
+      goFullscreen();
       if (locked && !v.muted) return;
       goUnmuted(true);
-      if (AUTO_FULLSCREEN) goFullscreen();
     }, { capture: true, passive: true });
   });
 
@@ -365,14 +369,36 @@
     if (!document.hidden && wakeLock === null) requestWakeLock();
   });
 
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+              document.msFullscreenElement);
+  }
+
+  function hush(p) {                       // promise bez nieobsłużonego odrzucenia
+    if (p && typeof p.catch === "function") p.catch(function () {});
+  }
+
+  // Wołane z każdego gestu użytkownika — pełny ekran wymaga gestu i nie da się
+  // go zażądać przy ładowaniu strony. Wyjście z pełnego ekranu (Esc, gest
+  // systemowy) jest nie do zablokowania, ale kolejne dotknięcie wraca.
   function goFullscreen() {
+    if (isFullscreen()) return;
     var el = document.documentElement;
     var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-    if (fn) { try { fn.call(el); } catch (e) {} }
-    if (screen.orientation && screen.orientation.lock) {
-      try { screen.orientation.lock("landscape").catch(function () {}); } catch (e) {}
-    }
+    if (!fn) return;                       // iOS Safari nie ma pełnego ekranu dla elementu
+    try { hush(fn.call(el)); } catch (e) {}
   }
+
+  // Blokada orientacji działa dopiero, gdy pełny ekran jest już aktywny,
+  // więc próbujemy jej po zdarzeniu, a nie zaraz po żądaniu.
+  function lockLandscape() {
+    if (!isFullscreen()) return;
+    if (!screen.orientation || !screen.orientation.lock) return;   // iOS ignoruje
+    try { hush(screen.orientation.lock("landscape")); } catch (e) {}
+  }
+  ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"].forEach(function (ev) {
+    document.addEventListener(ev, function () { lockLandscape(); fit(); });
+  });
 
   // Jedyny komunikat na tej stronie: gdy w repo nie ma żadnego z plików
   // wypisanych w <source>. Bez tego widać sam czarny ekran i nie wiadomo,

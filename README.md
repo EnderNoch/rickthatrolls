@@ -192,11 +192,18 @@ If you want the seam at the end of the loop to be invisible, force a keyframe ev
 At the top of the script in `index.html`:
 
 ```js
-var VOLUME          = 1.0;   // volume once sound is unlocked
-var AUTO_FULLSCREEN = false; // true = the first tap enters fullscreen
+var VOLUME = 1.0;   // volume once sound is unlocked
 ```
 
-`AUTO_FULLSCREEN = true` additionally tries to lock the orientation to landscape (`screen.orientation.lock`) — works on Android, iOS ignores it.
+That is the only setting. Fullscreen and the landscape orientation lock are deliberately **not** configurable — there is no flag to turn them off, only an edit to `index.html`.
+
+### Fullscreen and orientation
+
+Every user gesture requests fullscreen on `documentElement`, and once fullscreen is actually active the page asks for a landscape orientation lock. Both are attempted on *every* gesture, not just the first, so leaving fullscreen and then touching the screen puts you straight back in.
+
+Neither can happen on load: fullscreen requires a user gesture, which is enforced by the browser. The first tap is therefore the one that turns on sound and fullscreen together.
+
+`screen.orientation.lock` only works while fullscreen is active, which is why it is attempted on the `fullscreenchange` event rather than immediately after the request. It works on Android; iOS Safari has no element fullscreen and ignores the orientation lock, so on an iPhone the page simply stays as it is. Leaving fullscreen (Esc, a system gesture) cannot be blocked — the next gesture restores it.
 
 ## 9. Testing locally
 
@@ -404,11 +411,18 @@ Jeśli zależy ci na tym, żeby przejście przez koniec pętli było niewidoczne
 Na górze skryptu w `index.html`:
 
 ```js
-var VOLUME          = 1.0;   // głośność po odblokowaniu dźwięku
-var AUTO_FULLSCREEN = false; // true = pierwsze dotknięcie wchodzi w pełny ekran
+var VOLUME = 1.0;   // głośność po odblokowaniu dźwięku
 ```
 
-`AUTO_FULLSCREEN = true` dodatkowo próbuje zablokować orientację w poziomie (`screen.orientation.lock`) — działa na Androidzie, iOS to ignoruje.
+To jedyne ustawienie. Pełny ekran i blokada orientacji w poziomie **celowo nie są konfigurowalne** — nie ma przełącznika, którym dałoby się je wyłączyć, jest tylko edycja `index.html`.
+
+### Pełny ekran i orientacja
+
+Każdy gest użytkownika żąda pełnego ekranu na `documentElement`, a gdy pełny ekran faktycznie się załączy — strona prosi o blokadę orientacji w poziomie. Oba dzieją się przy *każdym* geście, nie tylko przy pierwszym, więc wyjście z pełnego ekranu i dotknięcie ekranu wraca do niego natychmiast.
+
+Żadne z nich nie może zadziałać przy ładowaniu strony: pełny ekran wymaga gestu użytkownika i wymusza to przeglądarka. Pierwsze dotknięcie włącza więc dźwięk i pełny ekran naraz.
+
+`screen.orientation.lock` działa tylko przy aktywnym pełnym ekranie, dlatego jest wywoływana na zdarzeniu `fullscreenchange`, a nie zaraz po żądaniu. Działa na Androidzie; iOS Safari nie ma pełnego ekranu dla elementu i ignoruje blokadę orientacji, więc na iPhonie strona po prostu zostaje jak jest. Wyjścia z pełnego ekranu (Esc, gest systemowy) nie da się zablokować — przywraca je kolejny gest.
 
 ## 9. Test lokalny
 
