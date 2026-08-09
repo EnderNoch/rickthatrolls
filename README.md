@@ -164,14 +164,16 @@ Nothing here is "blocked" — the features simply do not exist. That distinction
 |---|---|
 | control bar, pause, volume slider, seeking | no `controls` attribute — the browser draws no UI at all |
 | keyboard response (space, `k`, `m`, `f`, arrows…) | a `<video>` without `controls` **cannot take focus**, so keys never reach it |
-| context menu entries "Show controls", "Save video as…", "Loop" | an explicit `contextmenu` preventDefault. `pointer-events: none` is **not** enough — Gecko shows its full video menu anyway |
+| ~~context menu~~ | **not blocked any more.** `pointer-events: none` means Chromium offers the page menu rather than the video one, but Gecko shows its full video menu and the page leaves it alone |
 | Picture-in-Picture, AirPlay, Chromecast | the `disablepictureinpicture` and `disableremoteplayback` attributes |
 | page scrolling, pinch-zoom, text selection | `overflow: hidden`, `user-select: none`, `user-scalable=no` |
 | the large iOS Safari "play" button | `::-webkit-media-controls-start-playback-button { display: none }` |
 
 **Everything below was measured on Chromium only.** Firefox (Gecko) and Safari (WebKit) could not be run in the environment used.
 
-One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. So that row is handled by `preventDefault`, and `volumechange` / `ratechange` handlers put the element back when Mute or Speed is used from it anyway.
+One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. That row is no longer defended at all. The `contextmenu` cancel and the `volumechange` / `ratechange` handlers that used to undo Mute and Speed have all been removed: **anything the browser offers is now left to work.** Pause is the one exception, and only because the same handler covers screen sleep and tab switching, which are not user decisions about this video.
+
+Sound is unlocked once and then left alone. Automatic attempts stop after the first success, so muting from the browser's own menu sticks; only a deliberate tap turns sound back on.
 
 ### Browser controls still work
 
@@ -417,14 +419,16 @@ Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnic
 |---|---|
 | pasek sterowania, pauza, suwak głośności, przewijanie | brak atrybutu `controls` — przeglądarka nie rysuje żadnego UI |
 | reakcja na klawiaturę (spacja, `k`, `m`, `f`, strzałki…) | `<video>` bez `controls` **nie przyjmuje fokusu**, więc klawisze nigdy do niego nie trafiają |
-| menu kontekstowe „Pokaż elementy sterujące", „Zapisz wideo jako…", „Zapętl" | jawne `preventDefault` na `contextmenu`. Samo `pointer-events: none` **nie wystarcza** — Gecko i tak pokazuje pełne menu wideo |
+| ~~menu kontekstowe~~ | **już nie blokowane.** `pointer-events: none` sprawia, że Chromium pokazuje menu strony zamiast menu wideo, ale Gecko wyświetla pełne menu wideo i strona mu nie przeszkadza |
 | Picture-in-Picture, AirPlay, Chromecast | atrybuty `disablepictureinpicture` i `disableremoteplayback` |
 | przewijanie strony, pinch-zoom, zaznaczanie | `overflow: hidden`, `user-select: none`, `user-scalable=no` |
 | duży przycisk „play" iOS Safari | `::-webkit-media-controls-start-playback-button { display: none }` |
 
 **Wszystko poniżej zmierzone jest wyłącznie na Chromium.** Firefoksa (Gecko) ani Safari (WebKit) nie dało się uruchomić w użytym środowisku.
 
-Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz obsługuje więc `preventDefault`, a handlery `volumechange` i `ratechange` przywracają element, gdy ktoś mimo wszystko użyje stamtąd „Wycisz" albo „Szybkość".
+Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz nie jest już broniony wcale. Anulowanie `contextmenu` oraz handlery `volumechange` i `ratechange`, które cofały „Wycisz" i „Szybkość", zostały usunięte: **wszystko, co oferuje przeglądarka, ma teraz działać.** Wyjątkiem jest pauza, i to wyłącznie dlatego, że ten sam handler obsługuje uśpienie ekranu i przełączenie karty, a to nie są decyzje użytkownika o tym filmie.
+
+Dźwięk jest odblokowywany raz i potem zostawiony w spokoju. Automatyczne próby kończą się po pierwszym sukcesie, więc wyciszenie z menu przeglądarki zostaje; dźwięk wraca dopiero po świadomym dotknięciu.
 
 ### Sterowanie przeglądarki działa
 

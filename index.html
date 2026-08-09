@@ -50,10 +50,11 @@
     background: transparent;
     display: block;
 
-    /* The video stops being a hit target for cursor and touch. On Chromium
-       that alone removes the native video context menu — right-click lands
-       on <body> instead. Gecko still shows its menu, which is why the script
-       also cancels the contextmenu event. */
+    /* The video is not a hit target for cursor or touch, so clicks pass
+       through to <body>. A side effect on Chromium is that right-click
+       offers the page menu rather than the video one; Gecko shows its video
+       menu regardless. The page does not interfere with either — browser
+       controls are deliberately left alone. */
     pointer-events: none;
   }
 
@@ -291,37 +292,7 @@
     });
   }
 
-  /* ---------- 2. Undoing changes to the element ----------
-     Reaches anything that changes the state of the <video> itself: the Mute
-     and Speed entries in Gecko's native menu, which Shift + right-click
-     opens regardless of the preventDefault below, and the DevTools console.
-
-     It does NOT reach muting the tab. The speaker icon on the tab, "Mute
-     tab" in the tab's menu and the system mixer all act after the element:
-     `muted` and `volume` do not change and no event fires, so the page
-     cannot even observe that state, let alone restore it. */
-  v.addEventListener("volumechange", function () {
-    if (!locked) return;                   // silence before unlocking is deliberate
-    if (v.muted) v.muted = false;
-    if (Math.abs(v.volume - VOLUME) > 0.001) v.volume = VOLUME;
-  });
-
-  v.addEventListener("ratechange", function () {
-    if (v.playbackRate !== 1) v.playbackRate = 1;
-  });
-
-  /* ---------- 3. Context menu ----------
-     On Chromium `pointer-events: none` is enough on its own: the video is
-     not a hit target, so right-click lands on <body> and the browser has no
-     video menu to offer. Gecko shows its full video menu anyway, measured
-     against a real Firefox, so the event is cancelled outright as well.
-     Shift + right-click still bypasses this — that is deliberate in Gecko
-     and cannot be suppressed, which is why section 2 exists. */
-  window.addEventListener("contextmenu", function (e) {
-    e.preventDefault();
-  }, { capture: true });
-
-  /* ---------- 4. Sound ----------
+  /* ---------- 2. Sound ----------
      The one browser rule this page has to work around: autoplay with sound
      is blocked until the user has interacted with the document. Every
      attempt at circumventing it was measured and none worked, so the page
@@ -337,7 +308,12 @@
   }
 
   function goUnmuted(fromGesture) {
-    if (locked && !v.muted) return;
+    if (locked && !v.muted) return;         // sound is already on
+    // Once sound has been unlocked, automatic attempts stop. Without this the
+    // media events below would quietly undo a mute the user made from the
+    // browser's own menu, which is exactly the kind of fighting this page
+    // does not do. A deliberate tap still turns sound back on.
+    if (locked && !fromGesture) return;
     if (blocked && !fromGesture) return;
     if (goUnmuted.busy) return;
     // While the browser is still picking a <source> (a 404 on video.mp4, for
@@ -386,7 +362,7 @@
     }, { capture: true, passive: true });
   });
 
-  /* ---------- 5. Window size and orientation ----------
+  /* ---------- 3. Window size and orientation ----------
      The CSS handles this everywhere except iOS Safari, which keeps reporting
      the old height for a moment after a rotation and leaves a blank strip
      behind. */
@@ -414,7 +390,7 @@
   }
   v.addEventListener("loadedmetadata", fit);
 
-  /* ---------- 6. Fullscreen, orientation and wake lock ---------- */
+  /* ---------- 4. Fullscreen, orientation and wake lock ---------- */
 
   // Keep the screen awake while playing, where the browser allows it.
   var wakeLock = null;
@@ -462,7 +438,7 @@
     document.addEventListener(ev, function () { lockLandscape(); fit(); });
   });
 
-  /* ---------- 7. Missing file ----------
+  /* ---------- 5. Missing file ----------
      The only message this page ever shows: none of the files listed in
      <source> exists. Without it you get a black screen and no way to tell a
      missing file from a video that opens on a black frame. */
@@ -475,7 +451,7 @@
     }
   }, 4000);
 
-  /* ---------- 8. Start ----------
+  /* ---------- 6. Start ----------
      The attempt at sound hangs off media events rather than DOMContentLoaded.
      By the time the DOM is ready the browser may still be picking a
      <source>, and play() would reject for that reason alone. */
