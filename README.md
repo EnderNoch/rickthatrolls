@@ -8,7 +8,7 @@ A single-file GitHub Pages site that plays a video the moment you land on it:
 - **looping forever** — the only things that can still stop it (screen sleep, a media key) are turned back into playback,
 - **fills the window** — the whole frame stays visible at any window size; phone rotation, window resizing and collapsing browser chrome are handled,
 - **at full volume** — with the one caveat described below (autoplay with sound),
-- the only way out is closing the tab or navigating back.
+- **the page itself offers no way to stop it** — but the browser around it does, and that part is not blocked. See [browser controls still work](#browser-controls-still-work).
 
 Works on any device with a browser — no libraries, no dependencies, just `index.html`.
 
@@ -173,9 +173,9 @@ Nothing here is "blocked" — the features simply do not exist. That distinction
 
 One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: none` does not stop Firefox from showing its native video context menu. A screenshot from a real Firefox showed the full menu — Pause, Mute, Speed, Loop, Fullscreen, Show controls, Picture-in-Picture, Save video as. So that row is handled by `preventDefault`, and `volumechange` / `ratechange` handlers put the element back when Mute or Speed is used from it anyway.
 
-### What cannot be blocked, in any browser
+### Browser controls still work
 
-Everything above reaches the `<video>` element. These do not touch the element at all, so the page has no way to see them, let alone undo them:
+Everything above reaches the `<video>` element. The controls below belong to the browser, not to the page — they never touch the element, so the page cannot see them, let alone undo them. **They work, and a visitor can use any of them to stop or silence this page:**
 
 | | why the page cannot reach it |
 |---|---|
@@ -185,6 +185,8 @@ Everything above reaches the `<video>` element. These do not touch the element a
 | Shift + right-click opening the native menu | deliberate Gecko escape hatch; the actions taken from it are undone, the menu itself cannot be suppressed |
 
 The tab audio indicator in particular exists precisely so that a page cannot hide that it is making noise. There is no API to remove it, and playing the audio through Web Audio instead of the element does not avoid it either.
+
+None of this is a gap waiting to be filled. A page runs in a sandboxed renderer with no access to browser chrome, and these particular mechanisms are specified the way they are precisely to stop pages like this one from trapping people. If you need them gone, the answer is a different runtime — a kiosk browser such as Fully Kiosk on a wall panel, or `chrome --kiosk` — not different page code.
 
 **Shift + right-click in Firefox shows the native menu regardless of `preventDefault`**, and from there Mute and Speed do work. That is deliberately not defended against: it belongs in the same category as browser extensions and DevTools, which have been accepted escape hatches from the start. Handlers reverting `volumechange` and `ratechange` existed briefly and were removed — they only ever guarded a path an ordinary visitor never takes, and unused defensive code is the thing this project keeps deleting.
 
@@ -259,7 +261,7 @@ Jednoplikowa strona na GitHub Pages, która po wejściu odtwarza film:
 - **non stop w pętli** — jedyne, co jeszcze potrafi zatrzymać film (uśpienie ekranu, klawisz multimedialny), wraca do odtwarzania,
 - **na całe okno** — cały kadr widoczny przy każdym rozmiarze okna; obrót telefonu, zmiana rozmiaru okna i chowające się paski przeglądarki są obsłużone,
 - **na domyślnej głośności** — z zastrzeżeniem opisanym niżej (autoplay z dźwiękiem),
-- jedyne wyjście to zamknięcie karty / cofnięcie się ze strony.
+- **sama strona nie daje jak tego zatrzymać** — ale przeglądarka wokół niej daje i to nie jest zablokowane. Patrz [sterowanie przeglądarki działa](#sterowanie-przegl%C4%85darki-dzia%C5%82a).
 
 Działa na każdym urządzeniu z przeglądarką — nie ma tu żadnych bibliotek ani zależności, tylko `index.html`.
 
@@ -424,9 +426,9 @@ Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnic
 
 Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: none` nie powstrzymuje Firefoksa przed pokazaniem natywnego menu kontekstowego wideo. Zrzut z prawdziwego Firefoksa pokazał pełne menu — Wstrzymaj, Wycisz, Szybkość, Zapętl, Tryb pełnoekranowy, Wyświetl elementy sterujące, Obraz w obrazie, Zapisz wideo jako. Ten wiersz obsługuje więc `preventDefault`, a handlery `volumechange` i `ratechange` przywracają element, gdy ktoś mimo wszystko użyje stamtąd „Wycisz" albo „Szybkość".
 
-### Czego nie da się zablokować w żadnej przeglądarce
+### Sterowanie przeglądarki działa
 
-Wszystko powyżej dotyka elementu `<video>`. Poniższe nie dotykają go wcale, więc strona nie ma jak ich zobaczyć, a tym bardziej cofnąć:
+Wszystko powyżej dotyka elementu `<video>`. Poniższe należy do przeglądarki, nie do strony — nie dotyka elementu wcale, więc strona nie ma jak tego zobaczyć, a tym bardziej cofnąć. **To działa i każdy odwiedzający może tym zatrzymać albo uciszyć tę stronę:**
 
 | | dlaczego strona tego nie dosięga |
 |---|---|
@@ -436,6 +438,8 @@ Wszystko powyżej dotyka elementu `<video>`. Poniższe nie dotykają go wcale, w
 | Shift + prawy klik otwierający natywne menu | celowa furtka Gecko; akcje z niego są cofane, samego menu ukryć się nie da |
 
 Wskaźnik dźwięku na karcie istnieje dokładnie po to, żeby strona nie mogła ukryć, że hałasuje. Nie ma API, które by go usuwało, a przepuszczenie dźwięku przez Web Audio zamiast przez element też go nie omija.
+
+To nie jest luka czekająca na załatanie. Strona działa w piaskownicy procesu renderującego, bez dostępu do interfejsu przeglądarki, a akurat te mechanizmy są tak zaprojektowane właśnie po to, żeby strony takie jak ta nie mogły uwięzić użytkownika. Jeśli mają zniknąć, odpowiedzią jest inne środowisko uruchomieniowe — przeglądarka kioskowa w rodzaju Fully Kiosk na panelu ściennym albo `chrome --kiosk` — a nie inny kod strony.
 
 **Shift + prawy klik w Firefoksie pokazuje natywne menu niezależnie od `preventDefault`**, a stamtąd „Wycisz" i „Szybkość" faktycznie działają. Celowo nie ma na to obrony: to ta sama kategoria co rozszerzenia przeglądarki i DevTools, przyjęte jako dopuszczalne wyjścia od początku. Handlery cofające `volumechange` i `ratechange` istniały przez chwilę i zostały usunięte — broniły wyłącznie ścieżki, którą zwykły odwiedzający nigdy nie idzie, a nieużywany kod obronny to dokładnie to, co ten projekt konsekwentnie kasuje.
 
