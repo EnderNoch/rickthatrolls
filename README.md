@@ -1,20 +1,45 @@
-# [rickthatrolls](https://endernoch.github.io/rickthatrolls/)
+# rickthatrolls
 
 **English** · [Polski ↓](#polski)
 
-A single-file GitHub Pages site that plays a video the moment you land on it:
+> Open the link and a video starts playing. The page has no pause button, no volume slider, no progress bar — not hidden, simply not there. Pause it some other way and it starts again.
 
-- **no controls at all** — not because they are blocked, but because they do not exist: no `controls` attribute, no focus, no hit target for the cursor,
-- **looping forever** — the only things that can still stop it (screen sleep, a media key) are turned back into playback,
-- **fills the window** — the whole frame stays visible at any window size; phone rotation, window resizing and collapsing browser chrome are handled,
-- **at full volume** — with the one caveat described below (autoplay with sound),
-- **the page itself offers no way to stop it** — but the browser around it does, and that part is not blocked. See [browser controls still work](#browser-controls-still-work).
+**Live:** https://endernoch.github.io/rickthatrolls/
 
-Works on any device with a browser — no libraries, no dependencies, just `index.html`.
+## What is it?
+
+A web page that does exactly one thing: plays a video on a loop and gives the viewer nothing on the page to stop it with. The name is a nod to the rickroll — a link that plays something you did not ask for — taken one step further: this one does not let go easily.
+
+It runs on any phone, tablet or computer with a browser. Nothing to install, no app, no account.
+
+## What happens when you open it
+
+1. **The video starts right away** and fills the screen — upright or sideways, on any screen size.
+2. **At first it is silent.** Browsers do not allow a page to play sound before you touch it, so a small note appears at the bottom: *"Tap or click for sound"* — in the language of your browser (about 55 languages).
+3. **The first tap, click or key press** turns the sound on at full volume and switches to fullscreen. On Android phones it also turns the picture to landscape.
+4. **The page itself has nothing to control.** No buttons, no bar, no keyboard shortcuts. If the video pauses — the screen going to sleep, a media key, the button on your headphones — it simply starts again.
+5. **The browser still has the last word.** Muting the tab, the system volume, closing the tab or going back all work, and the page does not fight them. That is on purpose: a page cannot — and should not — take over the browser around it.
+
+## How it is made, in short
+
+- **One file.** The whole site is a single `index.html` of about 19 KB — no libraries, no frameworks, no server.
+- **Nothing is blocked — it is missing.** Instead of catching and cancelling clicks, the video is simply given no controls. There is nothing for the mouse to hit and nothing for the keyboard to reach. Code only covers what absence cannot: restarting after a pause, media keys, and turning the sound on.
+- **Free hosting.** The page lives on GitHub Pages and is published automatically on every change.
+- **Video preparation.** `compress.sh` shrinks a film to a predictable size and cuts out black bars baked into the picture.
 
 ---
 
-## 1. Adding the video
+## Documentation
+
+For anyone who wants to set up their own copy or see how each part works.
+
+| | |
+|---|---|
+| **Set up your own** | [1. Adding the video](#1-adding-the-video) · [2. Size limits and compression](#2-size-limits-and-compression) · [3. Enabling GitHub Pages](#3-enabling-github-pages) · [9. Testing locally](#9-testing-locally) |
+| **Privacy** | [4. Keeping the video out of the repository](#4-keeping-the-video-out-of-the-repository) |
+| **Under the hood** | [5. Sound and autoplay](#5-sound-and-autoplay--the-one-limit-that-cannot-be-worked-around) · [6. Why there is nothing to block](#6-why-there-is-nothing-to-block) · [Browser controls still work](#browser-controls-still-work) · [7. Looping, scaling and orientation](#7-looping-scaling-and-orientation) · [8. Configuration](#8-configuration) |
+
+### 1. Adding the video
 
 There are three variants. Pick one; the workflow detects which.
 
@@ -50,7 +75,7 @@ Other names and paths work too — `index.html` tries these in order:
 
 For a different name, edit the `<source src="...">` lines in `index.html` (they are commented). If no file is found, the page shows a message after ~4 s instead of a black screen.
 
-## 2. Size limits and compression
+### 2. Size limits and compression
 
 | limit | value | applies to |
 |---|---|---|
@@ -62,7 +87,7 @@ For a different name, edit the `<source src="...">` lines in `index.html` (they 
 
 The key point: **the 100 MB limit applies to every repository**, so keeping the video in a separate private repo (variant B) does not raise it at all. A file over 100 MB has exactly two options: compress it, or keep it out of git entirely (variant C).
 
-### compress.sh
+#### compress.sh
 
 ```bash
 ./compress.sh my-movie.mp4          # -> video.mp4 at roughly 45 MB
@@ -85,17 +110,17 @@ The script needs `ffmpeg` and `ffprobe` (Ubuntu: `apt install ffmpeg`, macOS: `b
 
 Compressing pays off even when the file would fit: with 100 GB of monthly bandwidth, a 45 MB video covers ~2270 visits, a 244 MB one only ~420. Every one of those megabytes is also downloaded by a viewer on mobile data.
 
-### Git LFS — usually the wrong answer
+#### Git LFS — usually the wrong answer
 
 The workflow checks out with `lfs: true`, so LFS files are resolved before publishing and **do work** (they do not under "Deploy from a branch" — Pages serves the LFS pointer instead of the video). The problem is the free LFS allowance: 1 GB of storage and **1 GB of bandwidth per month**, which a 240 MB video exhausts after four downloads. For this use case LFS almost always loses to compression or to variant C.
 
-## 3. Enabling GitHub Pages
+### 3. Enabling GitHub Pages
 
 In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 The workflow (`.github/workflows/pages.yml`) publishes on every push to `main` and on demand from the Actions tab. The site lands at `https://endernoch.github.io/rickthatrolls/`.
 
-## 4. Keeping the video out of the repository
+### 4. Keeping the video out of the repository
 
 Two things need separating first, because only one of them is achievable:
 
@@ -108,7 +133,7 @@ The second one cannot be worked around by any code: if the browser plays the vid
 
 The first one, however, the workflow does for you. The video is added during deployment, so it is absent from the repo's files, from git history, and from the 100 MB limit.
 
-### Variant B — a separate private repository (free)
+#### Variant B — a separate private repository (free)
 
 Private repositories cost nothing, so the video can live in one while the public site repo only reaches for it.
 
@@ -122,13 +147,13 @@ The workflow then checks the private repo out into the working directory and cop
 
 A `401 Bad credentials` in the deploy log means the token string itself is invalid — truncated or with whitespace picked up while copying. A valid token without access to the repo fails differently (`Repository not found`).
 
-### Variant C — a private link
+#### Variant C — a private link
 
 The video lives anywhere a single `curl` can reach (S3 presigned URL, Dropbox with `?dl=1`, your own server). Set `VIDEO_URL` in **Settings → Secrets and variables → Actions → Secrets**. The secret never appears in the logs or on the page.
 
 The format is taken from the extension in the URL — the query string and fragment are stripped, so `…/movie.webm?token=abc` works correctly. A URL **without** an extension (e.g. `…/download?id=99`) is saved as `video.mp4`; if it is really a webm, the browser will skip it because of the mismatched `type`. An unreachable URL fails the deployment instead of quietly publishing an empty page.
 
-### What else limits the reach
+#### What else limits the reach
 
 Whichever variant you pick, the repo already ships with:
 
@@ -140,7 +165,7 @@ Whichever variant you pick, the repo already ships with:
 
 If "hard to find" is enough for you, give the file a random name (e.g. `a7f3c91e4b2d.mp4`, updating `<source src="...">`) and name the subpage the same way — then knowing the repo address gets you nothing. That is security through obscurity, not through permissions.
 
-## 5. Sound and autoplay — the one limit that cannot be worked around
+### 5. Sound and autoplay — the one limit that cannot be worked around
 
 Every browser (Chrome, Safari, Firefox, Edge) **blocks automatic playback with sound** until the user has interacted with the page. That is enforced by the browser engine; it is not something HTML or JS can switch off.
 
@@ -150,13 +175,13 @@ The page handles it like this:
 2. If the browser refuses, the video **still starts immediately**, just muted, and a small badge appears at the bottom.
 3. **Any** tap, click or keypress turns the sound on at volume 1.0 and the badge disappears. There is no button to hit — the whole screen is live.
 
-### Badge language
+#### Badge language
 
 The badge is shown in the browser's language. It is picked from `navigator.languages`, matching the full tag first (`pt-BR`), then the bare language (`pt`); Chinese distinguishes Simplified from Traditional script, and legacy codes (`no`, `iw`, `in`, `tl`) are mapped to current ones. Anything not in the table falls back to English.
 
 Around 55 languages are covered; Arabic, Hebrew, Persian and Urdu get `dir="rtl"`. The `HINT` table sits at the top of the script in `index.html`, so fixing a translation is a one-line change. Translations other than English and Polish are best-effort and have not been checked by native speakers.
 
-## 6. Why there is nothing to block
+### 6. Why there is nothing to block
 
 Nothing here is "blocked" — the features simply do not exist. That distinction matters: a block is code that has to be maintained and can always be worked around, while an absent feature has no way to fail.
 
@@ -175,7 +200,7 @@ One Chromium conclusion has since been **disproved on Gecko**: `pointer-events: 
 
 Sound is unlocked once and then left alone. Automatic attempts stop after the first success, so muting from the browser's own menu sticks; only a deliberate tap turns sound back on.
 
-### Browser controls still work
+#### Browser controls still work
 
 Everything above reaches the `<video>` element. The controls below belong to the browser, not to the page — they never touch the element, so the page cannot see them, let alone undo them. **They work, and a visitor can use any of them to stop or silence this page:**
 
@@ -204,7 +229,7 @@ Only three things remain in JS, because no amount of absence covers them:
 
 What cannot be stopped, and has no solution in any web technology: closing the tab, the back button, muting the tab from the browser or the OS, disabling JS, DevTools, extensions. Those are the intended way out of the page.
 
-## 7. Looping, scaling and orientation
+### 7. Looping, scaling and orientation
 
 Looping is done by the native `loop` attribute on `<video>` — not a line of JS. Verified on Chromium over 20 seconds with a three-second clip: **6 full cycles, zero `ended` events, zero `pause` events**, the video never stopped once. The browser simply returns to zero and keeps going.
 
@@ -215,7 +240,7 @@ If you want the seam at the end of the loop to be invisible, force a keyframe ev
 - After `orientationchange` the dimensions are recomputed immediately and again after 100/400/900 ms — iOS Safari only reports the new size once the rotation animation finishes, and without this a blank strip is left behind.
 - A `visualViewport` listener also catches the keyboard and system bars appearing.
 
-### Embedding: the bars are transparent
+#### Embedding: the bars are transparent
 
 The letterboxed areas have no background of their own, so when the page is put in an iframe — a Home Assistant *Webpage* card with its background hidden, for example — whatever is behind the card shows through instead of a black slab.
 
@@ -223,7 +248,7 @@ Standalone that would be wrong: with no background at all the browser paints its
 
 Verified by screenshot in both situations: inside an iframe over a magenta parent the bars are magenta up to the frame edge; opened directly they are black.
 
-## 8. Configuration
+### 8. Configuration
 
 At the top of the script in `index.html`:
 
@@ -233,7 +258,7 @@ var VOLUME = 1.0;   // volume once sound is unlocked
 
 That is the only setting. Fullscreen and the landscape orientation lock are deliberately **not** configurable — there is no flag to turn them off, only an edit to `index.html`.
 
-### Fullscreen and orientation
+#### Fullscreen and orientation
 
 Every user gesture requests fullscreen on `documentElement`, and once fullscreen is actually active the page asks for a landscape orientation lock. Both are attempted on *every* gesture, not just the first, so leaving fullscreen and then touching the screen puts you straight back in.
 
@@ -241,7 +266,7 @@ Neither can happen on load: fullscreen requires a user gesture, which is enforce
 
 `screen.orientation.lock` only works while fullscreen is active, which is why it is attempted on the `fullscreenchange` event rather than immediately after the request. It works on Android; iOS Safari has no element fullscreen and ignores the orientation lock, so on an iPhone the page simply stays as it is. Leaving fullscreen (Esc, a system gesture) cannot be blocked — the next gesture restores it.
 
-## 9. Testing locally
+### 9. Testing locally
 
 Do not open `index.html` over `file://` — autoplay and some APIs behave differently there than on Pages. Run a local server:
 
@@ -257,19 +282,44 @@ Then open `http://localhost:8000`.
 
 [↑ English](#rickthatrolls) · **Polski**
 
-Jednoplikowa strona na GitHub Pages, która po wejściu odtwarza film:
+> Otwierasz link i zaczyna się film. Strona nie ma przycisku pauzy, suwaka głośności ani paska postępu — nie są ukryte, po prostu ich nie ma. Zatrzymasz go w inny sposób — rusza dalej.
 
-- **bez żadnych kontrolek** — nie dlatego, że są blokowane, tylko dlatego, że ich nie ma: brak atrybutu `controls`, brak fokusu, brak celu dla kursora,
-- **non stop w pętli** — jedyne, co jeszcze potrafi zatrzymać film (uśpienie ekranu, klawisz multimedialny), wraca do odtwarzania,
-- **na całe okno** — cały kadr widoczny przy każdym rozmiarze okna; obrót telefonu, zmiana rozmiaru okna i chowające się paski przeglądarki są obsłużone,
-- **na domyślnej głośności** — z zastrzeżeniem opisanym niżej (autoplay z dźwiękiem),
-- **sama strona nie daje jak tego zatrzymać** — ale przeglądarka wokół niej daje i to nie jest zablokowane. Patrz [sterowanie przeglądarki działa](#sterowanie-przegl%C4%85darki-dzia%C5%82a).
+**Strona:** https://endernoch.github.io/rickthatrolls/
 
-Działa na każdym urządzeniu z przeglądarką — nie ma tu żadnych bibliotek ani zależności, tylko `index.html`.
+## Co to jest?
+
+Strona internetowa, która robi dokładnie jedną rzecz: odtwarza film w pętli i nie daje widzowi na stronie niczego, czym mógłby go zatrzymać. Nazwa nawiązuje do rickrolla — linku, który puszcza coś, o co nikt nie prosił — tylko o krok dalej: ten nie odpuszcza tak łatwo.
+
+Działa na każdym telefonie, tablecie i komputerze z przeglądarką. Nic nie trzeba instalować, żadnej aplikacji ani konta.
+
+## Co się dzieje po wejściu
+
+1. **Film startuje od razu** i wypełnia ekran — w pionie, w poziomie, na każdym rozmiarze.
+2. **Na początku jest cicho.** Przeglądarki nie pozwalają stronie grać dźwięku, zanim jej nie dotkniesz, więc na dole pojawia się mały napis *„Dotknij lub kliknij, aby włączyć dźwięk”* — w języku twojej przeglądarki (ok. 55 języków).
+3. **Pierwsze dotknięcie, kliknięcie albo klawisz** włącza dźwięk na pełną głośność i pełny ekran. Na telefonach z Androidem obraz obraca się też do poziomu.
+4. **Sama strona nie ma czym sterować.** Żadnych przycisków, paska ani skrótów klawiszowych. Jeśli film się zatrzyma — uśpienie ekranu, klawisz multimedialny, przycisk na słuchawkach — po prostu rusza dalej.
+5. **Ostatnie słowo ma przeglądarka.** Wyciszenie karty, głośność systemu, zamknięcie karty i cofnięcie się działają, a strona z nimi nie walczy. Celowo: strona nie może — i nie powinna — przejmować przeglądarki wokół siebie.
+
+## Jak to zrobione, w skrócie
+
+- **Jeden plik.** Cała strona to pojedynczy `index.html` o wadze ok. 19 KB — bez bibliotek, frameworków i serwera.
+- **Nic nie jest blokowane — po prostu tego nie ma.** Zamiast łapać i anulować kliknięcia, film w ogóle nie dostaje kontrolek. Mysz nie ma w co trafić, a klawiatura nie ma do czego dotrzeć. Kod obsługuje tylko to, czego sam brak nie załatwi: wznowienie po pauzie, klawisze multimedialne i włączenie dźwięku.
+- **Darmowy hosting.** Strona stoi na GitHub Pages i publikuje się sama przy każdej zmianie.
+- **Przygotowanie filmu.** `compress.sh` zmniejsza film do przewidywalnego rozmiaru i wycina czarne pasy wypalone w obrazie.
 
 ---
 
-## 1. Dodanie filmu
+## Dokumentacja
+
+Dla tych, którzy chcą postawić własną kopię albo zobaczyć, jak działa każda część.
+
+| | |
+|---|---|
+| **Własna kopia** | [1. Dodanie filmu](#1-dodanie-filmu) · [2. Limity rozmiaru i kompresja](#2-limity-rozmiaru-i-kompresja) · [3. Włączenie GitHub Pages](#3-włączenie-github-pages) · [9. Test lokalny](#9-test-lokalny) |
+| **Prywatność** | [4. Film poza repozytorium](#4-film-poza-repozytorium) |
+| **Pod maską** | [5. Dźwięk i autoplay](#5-dźwięk-i-autoplay--jedyne-ograniczenie-którego-nie-da-się-obejść) · [6. Dlaczego nie ma czego blokować](#6-dlaczego-nie-ma-czego-blokować) · [Sterowanie przeglądarki działa](#sterowanie-przeglądarki-działa) · [7. Pętla, skalowanie i orientacja](#7-pętla-skalowanie-i-orientacja) · [8. Konfiguracja](#8-konfiguracja) |
+
+### 1. Dodanie filmu
 
 Są trzy warianty. Wybierasz jeden — workflow sam wykrywa, który.
 
@@ -307,7 +357,7 @@ Obsługiwane są też inne nazwy/ścieżki — `index.html` po kolei próbuje:
 
 Jeśli chcesz inną nazwę, zmień linie `<source src="...">` w `index.html` (są opisane komentarzem). Gdy żaden plik nie zostanie znaleziony, strona po ~4 s wyświetla komunikat zamiast czarnego ekranu.
 
-## 2. Limity rozmiaru i kompresja
+### 2. Limity rozmiaru i kompresja
 
 | limit | wartość | dotyczy |
 |---|---|---|
@@ -319,7 +369,7 @@ Jeśli chcesz inną nazwę, zmień linie `<source src="...">` w `index.html` (s�
 
 Kluczowe: **limit 100 MB obowiązuje w każdym repozytorium**, więc trzymanie filmu w osobnym prywatnym repo (wariant B) nie omija go ani trochę. Plik ponad 100 MB ma dokładnie dwie drogi: skompresować albo wyprowadzić poza gita (wariant C).
 
-### compress.sh
+#### compress.sh
 
 ```bash
 ./compress.sh moj-film.mp4          # -> video.mp4 o rozmiarze ~45 MB
@@ -342,17 +392,17 @@ Skrypt wymaga `ffmpeg` i `ffprobe` (Ubuntu: `apt install ffmpeg`, macOS: `brew i
 
 Kompresja opłaca się nawet gdy plik zmieściłby się w limicie: przy 100 GB transferu miesięcznie film 45 MB wystarcza na ~2270 wejść, a 244 MB tylko na ~420. Widz na komórce też pobiera każdy z tych megabajtów.
 
-### Git LFS — zwykle zła odpowiedź
+#### Git LFS — zwykle zła odpowiedź
 
 Workflow robi `checkout` z `lfs: true`, więc pliki LFS są rozpakowywane przed publikacją i **działają** (przy trybie „Deploy from a branch" nie działają — Pages serwuje wtedy sam wskaźnik LFS zamiast filmu). Problem w tym, że darmowy limit LFS to 1 GB miejsca i **1 GB transferu miesięcznie**: przy filmie 240 MB kończy się po czterech pobraniach. Dla tego zastosowania LFS praktycznie zawsze przegrywa z kompresją albo z wariantem C.
 
-## 3. Włączenie GitHub Pages
+### 3. Włączenie GitHub Pages
 
 W repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 Workflow (`.github/workflows/pages.yml`) publikuje przy każdym pushu na `main` oraz ręcznie z zakładki Actions. Strona ląduje pod `https://endernoch.github.io/rickthatrolls/`.
 
-## 4. Film poza repozytorium
+### 4. Film poza repozytorium
 
 Najpierw rozdzielmy dwie rzeczy, bo tylko jedna z nich jest wykonalna:
 
@@ -365,7 +415,7 @@ Drugiego nie da się obejść żadnym kodem: skoro przeglądarka film odtwarza, 
 
 Pierwsze natomiast robi za ciebie workflow. Film jest dokładany dopiero w trakcie wdrożenia, więc nie ma go ani w plikach repo, ani w historii gita, ani w limicie 100 MB.
 
-### Wariant B — osobne prywatne repozytorium (za darmo)
+#### Wariant B — osobne prywatne repozytorium (za darmo)
 
 Prywatne repozytoria są bezpłatne, więc film może leżeć w takim, a publiczne repo ze stroną tylko po niego sięga.
 
@@ -377,13 +427,15 @@ Prywatne repozytoria są bezpłatne, więc film może leżeć w takim, a publicz
 
 Workflow zrobi wtedy `checkout` prywatnego repo do katalogu roboczego i skopiuje film do `_site/`.
 
-### Wariant C — prywatny link
+`401 Bad credentials` w logu wdrożenia znaczy, że sam ciąg tokenu jest nieprawidłowy — ucięty albo z doklejoną spacją przy kopiowaniu. Poprawny token bez dostępu do repo wywala się inaczej (`Repository not found`).
+
+#### Wariant C — prywatny link
 
 Film leży gdziekolwiek, skąd da się go pobrać jednym `curl` (S3 presigned URL, Dropbox z `?dl=1`, własny serwer). W **Settings → Secrets and variables → Actions → Secrets** ustaw `VIDEO_URL` na ten adres. Sekret nie pojawia się w logach ani na stronie.
 
 Format rozpoznawany jest po rozszerzeniu w adresie — query string i fragment są pomijane, więc `…/film.webm?token=abc` zadziała poprawnie. Adres **bez** rozszerzenia (np. `…/download?id=99`) zostanie zapisany jako `video.mp4`; jeśli to w rzeczywistości webm, przeglądarka go pominie z powodu niezgodnego `type`. Nieosiągalny adres przerywa wdrożenie z błędem, zamiast po cichu opublikować pustą stronę.
 
-### Co jeszcze ogranicza zasięg
+#### Co jeszcze ogranicza zasięg
 
 Niezależnie od wariantu, w repo jest już:
 
@@ -395,7 +447,7 @@ Niezależnie od wariantu, w repo jest już:
 
 Jeśli ma to wystarczyć jako „nie do znalezienia", nazwij plik losowym ciągiem (np. `a7f3c91e4b2d.mp4`, podmieniając `<source src="...">`) i tak samo nazwij podstronę — wtedy sam adres repo nic nie daje. To zabezpieczenie przez nieoczywistość, nie przez uprawnienia.
 
-## 5. Dźwięk i autoplay — jedyne ograniczenie, którego nie da się obejść
+### 5. Dźwięk i autoplay — jedyne ograniczenie, którego nie da się obejść
 
 Wszystkie przeglądarki (Chrome, Safari, Firefox, Edge) **blokują automatyczne odtwarzanie z dźwiękiem**, dopóki użytkownik nie wejdzie w interakcję ze stroną. To zabezpieczenie w silniku przeglądarki, nie coś, co da się wyłączyć z poziomu HTML/JS.
 
@@ -405,13 +457,13 @@ Strona radzi sobie z tym tak:
 2. Jeśli przeglądarka odmówi — film **i tak startuje natychmiast**, tylko wyciszony, a na dole pojawia się mała plakietka w języku przeglądarki („Dotknij lub kliknij, aby włączyć dźwięk").
 3. **Dowolne** dotknięcie / kliknięcie / naciśnięcie klawisza włącza dźwięk na głośności 1.0 i plakietka znika. Nie trzeba trafiać w przycisk — cały ekran jest aktywny.
 
-### Język plakietki
+#### Język plakietki
 
 Plakietka wyświetla się w języku przeglądarki. Język jest wybierany z `navigator.languages`, z dopasowaniem najpierw pełnego tagu (`pt-BR`), potem samego języka (`pt`); chiński rozróżnia pismo uproszczone i tradycyjne, a stare kody (`no`, `iw`, `in`, `tl`) są mapowane na aktualne. Brak wpisu w tabeli = angielski.
 
 Objęte jest ok. 55 języków; arabski, hebrajski, perski i urdu dostają `dir="rtl"`. Tabela `HINT` jest na górze skryptu w `index.html` — poprawka tłumaczenia to zmiana jednej linii. Tłumaczenia poza polskim i angielskim są robione w dobrej wierze, ale nie były sprawdzane przez native speakerów.
 
-## 6. Dlaczego nie ma czego blokować
+### 6. Dlaczego nie ma czego blokować
 
 Nic tu nie jest „zablokowane" — funkcji po prostu nie ma. To ważna różnica: blokada to kod, który trzeba utrzymywać i który zawsze da się obejść, a brak funkcji nie ma jak zawieść.
 
@@ -430,7 +482,7 @@ Jeden wniosek z Chromium został już **obalony na Gecko**: `pointer-events: non
 
 Dźwięk jest odblokowywany raz i potem zostawiony w spokoju. Automatyczne próby kończą się po pierwszym sukcesie, więc wyciszenie z menu przeglądarki zostaje; dźwięk wraca dopiero po świadomym dotknięciu.
 
-### Sterowanie przeglądarki działa
+#### Sterowanie przeglądarki działa
 
 Wszystko powyżej dotyka elementu `<video>`. Poniższe należy do przeglądarki, nie do strony — nie dotyka elementu wcale, więc strona nie ma jak tego zobaczyć, a tym bardziej cofnąć. **To działa i każdy odwiedzający może tym zatrzymać albo uciszyć tę stronę:**
 
@@ -449,7 +501,7 @@ To nie jest luka czekająca na załatanie. Strona działa w piaskownicy procesu 
 
 `disablepictureinpicture` to też atrybut Chromium, który Gecko ignoruje, więc pozycja „Obraz w obrazie" w tym menu zostaje. Resztę tej sekcji traktuj jako sprawdzoną na Chromium, nie na wszystkich przeglądarkach.
 
-Sprawdziłem to na Chromium zamiast zakładać: goły `<video>` bez `controls` po `.focus()` zostawia `document.activeElement` na `BODY` i nie reaguje na spację, `k`, `p`, `m`, `f`, strzałki, `j`/`l` ani cyfry — te skróty to funkcje odtwarzacza YouTube, nie przeglądarki. Klik i dwuklik też nic nie robią. Kod, który je „blokował", bronił przed czymś, czego nie ma.
+Zostało to sprawdzone na Chromium, a nie założone: goły `<video>` bez `controls` po `.focus()` zostawia `document.activeElement` na `BODY` i nie reaguje na spację, `k`, `p`, `m`, `f`, strzałki, `j`/`l` ani cyfry — te skróty to funkcje odtwarzacza YouTube, nie przeglądarki. Klik i dwuklik też nic nie robią. Kod, który je „blokował", bronił przed czymś, czego nie ma.
 
 W JS zostały tylko trzy rzeczy, których nie da się osiągnąć samym brakiem funkcji:
 
@@ -457,9 +509,9 @@ W JS zostały tylko trzy rzeczy, których nie da się osiągnąć samym brakiem 
 2. **Klawisze multimedialne, ekran blokady, przycisk na słuchawkach.** Jedyne sterowanie spoza strony, którego nie da się usunąć. Handlery `mediaSession` mają pauzę przemapowaną na odtwarzanie.
 3. **Autoodtwarzanie z dźwiękiem** — opisane w punkcie 5.
 
-Czego zatrzymać się **nie da** i nie ma na to sposobu w żadnej technologii webowej: zamknięcie karty, przycisk wstecz, wyciszenie karty z poziomu przeglądarki lub systemu, wyłączenie JS, DevTools, rozszerzenia. Zgodnie z tym, co pisałeś — to jest oczekiwane wyjście ze strony.
+Czego zatrzymać się **nie da** i nie ma na to sposobu w żadnej technologii webowej: zamknięcie karty, przycisk wstecz, wyciszenie karty z poziomu przeglądarki lub systemu, wyłączenie JS, DevTools, rozszerzenia. To są zamierzone wyjścia ze strony.
 
-## 7. Pętla, skalowanie i orientacja
+### 7. Pętla, skalowanie i orientacja
 
 Zapętlenie robi natywny atrybut `loop` na `<video>` — bez linijki JS-a. Sprawdzone na Chromium przez 20 sekund na trzysekundowym filmie: **6 pełnych okrążeń, zero zdarzeń `ended`, zero `pause`**, film ani razu się nie zatrzymał. Przeglądarka po prostu wraca do zera i leci dalej.
 
@@ -470,7 +522,7 @@ Jeśli zależy ci na tym, żeby przejście przez koniec pętli było niewidoczne
 - Po `orientationchange` wymiary są przeliczane od razu oraz po 100/400/900 ms — iOS Safari raportuje nowy rozmiar dopiero po animacji obrotu i bez tego zostaje pusty pasek.
 - Nasłuch na `visualViewport` łapie też pojawienie się klawiatury i pasków systemowych.
 
-### Osadzanie: pasy są przezroczyste
+#### Osadzanie: pasy są przezroczyste
 
 Obszary dopełniające kadr nie mają własnego tła, więc po wstawieniu strony w iframe — na przykład w kartę *Strona WWW* w Home Assistancie z ukrytym tłem — przez pasy widać to, co jest za kartą, zamiast czarnej płachty.
 
@@ -478,7 +530,7 @@ Samodzielnie byłoby to błędem: bez żadnego tła przeglądarka maluje własne
 
 Sprawdzone zrzutami w obu sytuacjach: w iframie nad magentowym rodzicem pasy są magentowe aż do krawędzi kadru, a po otwarciu wprost są czarne.
 
-## 8. Konfiguracja
+### 8. Konfiguracja
 
 Na górze skryptu w `index.html`:
 
@@ -488,7 +540,7 @@ var VOLUME = 1.0;   // głośność po odblokowaniu dźwięku
 
 To jedyne ustawienie. Pełny ekran i blokada orientacji w poziomie **celowo nie są konfigurowalne** — nie ma przełącznika, którym dałoby się je wyłączyć, jest tylko edycja `index.html`.
 
-### Pełny ekran i orientacja
+#### Pełny ekran i orientacja
 
 Każdy gest użytkownika żąda pełnego ekranu na `documentElement`, a gdy pełny ekran faktycznie się załączy — strona prosi o blokadę orientacji w poziomie. Oba dzieją się przy *każdym* geście, nie tylko przy pierwszym, więc wyjście z pełnego ekranu i dotknięcie ekranu wraca do niego natychmiast.
 
@@ -496,7 +548,7 @@ Każdy gest użytkownika żąda pełnego ekranu na `documentElement`, a gdy peł
 
 `screen.orientation.lock` działa tylko przy aktywnym pełnym ekranie, dlatego jest wywoływana na zdarzeniu `fullscreenchange`, a nie zaraz po żądaniu. Działa na Androidzie; iOS Safari nie ma pełnego ekranu dla elementu i ignoruje blokadę orientacji, więc na iPhonie strona po prostu zostaje jak jest. Wyjścia z pełnego ekranu (Esc, gest systemowy) nie da się zablokować — przywraca je kolejny gest.
 
-## 9. Test lokalny
+### 9. Test lokalny
 
 Nie otwieraj `index.html` przez `file://` — autoplay i część API zachowują się tam inaczej niż na Pages. Uruchom lokalny serwer:
 
