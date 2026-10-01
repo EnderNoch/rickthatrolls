@@ -1,30 +1,57 @@
 <!DOCTYPE html>
+<!--
+  rickthatrolls
+
+  EN  A video that plays on a loop, with nothing on the page to stop it.
+      Yes, the example video is a rickroll. The project is called
+      rickthatrolls, after all — you know what I mean.
+
+  PL  Film w pętli, którego strona nie ma czym zatrzymać.
+      Tak, przykładowy film to rickroll. Projekt nazywa się przecież
+      rickthatrolls — wiesz, o co chodzi.
+
+  https://github.com/EnderNoch/rickthatrolls
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
 <meta name="referrer" content="no-referrer">
-<!-- A single non-breaking space, not a missing tag. With no <title> at all
-     the browser puts the URL in the tab instead, which shows MORE, not less.
-     A space renders as no text. -->
+<!-- ── Tab title · Tytuł karty ──
+     EN  A single non-breaking space, not a missing tag. With no <title> at
+         all the browser puts the URL in the tab instead, which shows MORE,
+         not less. A space renders as no text.
+     PL  Jedna spacja nierozdzielająca, a nie brak znacznika. Bez <title>
+         przeglądarka wpisuje w kartę adres strony, czyli pokazuje WIĘCEJ,
+         a nie mniej. Spacja nie wyświetla żadnego tekstu. -->
 <title>&nbsp;</title>
-<!-- Transparent 1x1 PNG in place of a real icon. Without it the browser
-     requests /favicon.ico, gets a 404 and draws its own fallback glyph. -->
+<!-- ── Tab icon · Ikona karty ──
+     EN  Transparent 1x1 PNG in place of a real icon. Without it the browser
+         requests /favicon.ico, gets a 404 and draws its own fallback glyph.
+     PL  Przezroczysty PNG 1×1 zamiast prawdziwej ikony. Bez niego
+         przeglądarka pyta o /favicon.ico, dostaje 404 i rysuje własny
+         zastępczy symbol. -->
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
 <style>
+  /* ── Page · Strona ── */
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    /* Transparent rather than black, so that when the page is embedded in an
-       iframe (a Home Assistant card with its background hidden, say) the
-       parent shows through the letterbox area. Opened on its own the script
-       paints black, because the browser's default canvas is white in light
-       mode. */
+    /* EN  Transparent rather than black, so that when the page is embedded
+           in an iframe (a Home Assistant card with its background hidden,
+           say) the parent shows through the letterbox area. Opened on its
+           own the script paints black, because the browser's default canvas
+           is white in light mode.
+       PL  Przezroczyste, a nie czarne, żeby po osadzeniu strony w iframie
+           (np. w karcie Home Assistanta z ukrytym tłem) przez pasy było
+           widać rodzica. Otwarta samodzielnie strona dostaje czerń ze
+           skryptu, bo domyślne płótno przeglądarki w trybie jasnym jest
+           białe. */
     background: transparent;
-    overflow: hidden;            /* there is nothing to scroll */
+    overflow: hidden;            /* nothing to scroll · nie ma czego przewijać */
     overscroll-behavior: none;
     -webkit-user-select: none;
     user-select: none;
@@ -32,44 +59,64 @@
     -webkit-touch-callout: none;
   }
 
+  /* ── Video · Film ── */
   #v {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    /* dvw/dvh ignore collapsing browser chrome on mobile. The two lines
-       above are the fallback for engines without them. */
+    /* EN  dvw/dvh ignore collapsing browser chrome on mobile. The two lines
+           above are the fallback for engines without them.
+       PL  dvw/dvh pomijają chowające się paski przeglądarki na telefonie.
+           Dwie linie wyżej to zapas dla silników, które ich nie znają. */
     width: 100dvw;
     height: 100dvh;
-    /* contain keeps the whole frame visible at any window aspect ratio, and
-       the leftover space stays transparent. Switch to `cover` if you would
-       rather fill the window and crop the frame instead. */
+    /* EN  contain keeps the whole frame visible at any window aspect ratio,
+           and the leftover space stays transparent. Switch to `cover` if you
+           would rather fill the window and crop the frame instead.
+       PL  contain trzyma cały kadr w oknie przy dowolnych proporcjach,
+           a nadmiar miejsca zostaje przezroczysty. Zmień na `cover`, jeśli
+           wolisz wypełnić okno kosztem przyciętego kadru. */
     object-fit: contain;
     object-position: center center;
     background: transparent;
     display: block;
 
-    /* The video is not a hit target for cursor or touch, so clicks pass
-       through to <body>. A side effect on Chromium is that right-click
-       offers the page menu rather than the video one; Gecko shows its video
-       menu regardless. The page does not interfere with either — browser
-       controls are deliberately left alone. */
+    /* EN  The video is not a hit target for cursor or touch, so clicks pass
+           through to <body>. A side effect on Chromium is that right-click
+           offers the page menu rather than the video one; Gecko shows its
+           video menu regardless. The page does not interfere with either —
+           browser controls are deliberately left alone.
+       PL  Film nie jest celem dla kursora ani dotyku, więc kliknięcia
+           przechodzą do <body>. Efekt uboczny w Chromium: prawy klik daje
+           menu strony zamiast menu wideo; Gecko i tak pokazuje menu wideo.
+           Strona nie wtrąca się w żadne z nich — sterowanie przeglądarki
+           jest celowo zostawione w spokoju. */
     pointer-events: none;
   }
 
-  /* The large play button iOS Safari paints over a video when it refuses to
-     autoplay — the one native control that can appear without the controls
-     attribute. */
+  /* ── iOS play button · Przycisk „play” w iOS ──
+     EN  The large play button iOS Safari paints over a video when it refuses
+         to autoplay — the one native control that can appear without the
+         controls attribute.
+     PL  Duży przycisk „play”, który iOS Safari rysuje na filmie, gdy odmawia
+         autoodtwarzania — jedyna natywna kontrolka, która może się pojawić
+         bez atrybutu controls. */
   #v::-webkit-media-controls-start-playback-button,
   #v::-webkit-media-controls { display: none !important; }
 
-  /* Badge, shown only when the browser has refused to play sound. */
+  /* ── Badge · Plakietka ──
+     EN  Shown only when the browser has refused to play sound.
+     PL  Pokazywana tylko wtedy, gdy przeglądarka odmówiła dźwięku. */
   #hint {
     position: fixed;
-    /* Centred with auto margins rather than left:50% plus a translate. With
-       left:50% the available width is half the viewport, which wrapped long
-       translations far earlier than necessary. */
+    /* EN  Centred with auto margins rather than left:50% plus a translate.
+           With left:50% the available width is half the viewport, which
+           wrapped long translations far earlier than necessary.
+       PL  Wyśrodkowane marginesami auto, a nie left:50% z przesunięciem.
+           Przy left:50% dostępna szerokość to pół okna, przez co długie
+           tłumaczenia łamały się dużo wcześniej, niż trzeba. */
     left: 0;
     right: 0;
     margin-left: auto;
@@ -80,8 +127,10 @@
     border-radius: 999px;
     font: 500 15px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     color: #fff;
-    /* Some translations are long, so the badge wraps instead of running off
-       the side of a narrow phone. */
+    /* EN  Some translations are long, so the badge wraps instead of running
+           off the side of a narrow phone.
+       PL  Część tłumaczeń jest długa, więc plakietka się zawija, zamiast
+           wyjeżdżać za krawędź wąskiego telefonu. */
     max-width: min(88vw, 46ch);
     text-align: center;
     background: rgba(0, 0, 0, .55);
@@ -97,10 +146,15 @@
 </head>
 <body>
 
-<!-- No controls attribute means no control bar, no pause, no volume slider and
-     no seeking. Such an element also cannot take focus, so it never receives
-     keyboard input. disablepictureinpicture and disableremoteplayback drop
-     Picture-in-Picture and AirPlay/Cast. -->
+<!-- ── Video · Film ──
+     EN  No controls attribute means no control bar, no pause, no volume
+         slider and no seeking. Such an element also cannot take focus, so it
+         never receives keyboard input. disablepictureinpicture and
+         disableremoteplayback drop Picture-in-Picture and AirPlay/Cast.
+     PL  Brak atrybutu controls to brak paska sterowania, pauzy, suwaka
+         głośności i przewijania. Taki element nie przyjmuje też fokusu, więc
+         nie dostaje nic z klawiatury. disablepictureinpicture
+         i disableremoteplayback usuwają Obraz w obrazie i AirPlay/Cast. -->
 <video id="v"
        autoplay
        loop
@@ -112,34 +166,45 @@
        disableremoteplayback
        x5-playsinline
        x5-video-player-type="h5-page">
-  <!-- ==================== VIDEO FILE ====================
-       Put your file in the repo and list it below. The browser takes the
-       first source it can play; a missing file (404) makes it move on to
-       the next line, so unused entries cost nothing. -->
+  <!-- ── Video file · Plik z filmem ──
+       EN  Put your file in the repo and list it below. The browser takes the
+           first source it can play; a missing file (404) makes it move on to
+           the next line, so unused entries cost nothing.
+       PL  Wrzuć plik do repo i wpisz go poniżej. Przeglądarka bierze pierwsze
+           źródło, które umie odtworzyć; brakujący plik (404) każe jej przejść
+           do następnej linii, więc nieużywane wpisy nic nie kosztują. -->
   <source src="video.mp4"        type="video/mp4">
   <source src="media/video.mp4"  type="video/mp4">
   <source src="video.webm"       type="video/webm">
   <source src="media/video.webm" type="video/webm">
-  <!-- ==================================================== -->
 </video>
 
-<!-- Filled in by the script in the browser's language; English is the fallback. -->
+<!-- ── Badge · Plakietka ──
+     EN  Filled in by the script in the browser's language; English is the
+         fallback.
+     PL  Wypełniana przez skrypt w języku przeglądarki; zapasowo po
+         angielsku. -->
 <div id="hint"></div>
 
 <script>
 (function () {
   "use strict";
 
-  /* ========================= SETTINGS =========================
-     Fullscreen and the landscape lock are deliberately not settings: they
-     always happen, and turning them off means editing this file. */
-  var VOLUME = 1.0;   // volume once sound has been unlocked
-  /* ============================================================ */
+  /* ── Settings · Ustawienia ──
+     EN  Fullscreen and the landscape lock are deliberately not settings: they
+         always happen, and turning them off means editing this file.
+     PL  Pełny ekran i blokada poziomu celowo nie są ustawieniami: dzieją się
+         zawsze, a wyłączenie ich wymaga edycji tego pliku. */
+  var VOLUME = 1.0;   // volume once sound is unlocked · głośność po odblokowaniu dźwięku
 
-  /* ===================== BADGE TRANSLATIONS =====================
-     The badge appears only when the browser has blocked autoplay with
-     sound. The language comes from navigator.languages; anything missing
-     falls back to English. Fixing a translation is a one-line edit here. */
+  /* ── Badge translations · Tłumaczenia plakietki ──
+     EN  The badge appears only when the browser has blocked autoplay with
+         sound. The language comes from navigator.languages; anything missing
+         falls back to English. Fixing a translation is a one-line edit here.
+     PL  Plakietka pojawia się tylko wtedy, gdy przeglądarka zablokowała
+         autoodtwarzanie z dźwiękiem. Język pochodzi z navigator.languages;
+         brakujący wpis oznacza angielski. Poprawka tłumaczenia to zmiana
+         jednej linii tutaj. */
   var HINT = {
     "en":      "Tap or click for sound",
     "pl":      "Dotknij lub kliknij, aby włączyć dźwięk",
@@ -202,14 +267,16 @@
     "ur":      "آواز کے لیے ٹیپ یا کلک کریں"
   };
 
-  // Right-to-left scripts.
+  // Right-to-left scripts · Pisma od prawej do lewej
   var RTL = { ar: 1, he: 1, fa: 1, ur: 1 };
 
-  // Legacy language codes some browsers and systems still send.
+  // Legacy language codes some browsers still send · Stare kody języków, które część przeglądarek dalej wysyła
   var ALIAS = { iw: "he", in: "id", ji: "yi", no: "nb", tl: "fil", mo: "ro" };
 
-  // Only the repo owner sees this, and only while setting the page up, so
-  // it exists in the two languages the README does.
+  /* EN  Only the repo owner sees this, and only while setting the page up,
+         so it exists in the two languages the README does.
+     PL  Widzi to tylko właściciel repo i tylko przy stawianiu strony, więc
+         jest w tych dwóch językach, co README. */
   var NOFILE = {
     "en": "No video file — upload it to the repo (see README)",
     "pl": "Brak pliku wideo — wgraj go do repo (patrz README)"
@@ -223,7 +290,7 @@
       var base = tag.split("-")[0];
       base = ALIAS[base] || base;
       if (base === "zh") {
-        // Chinese depends on the script, not the country
+        // Chinese depends on the script, not the country · Chiński zależy od pisma, nie od kraju
         return /hant|tw|hk|mo/.test(tag) ? "zh-hant" : "zh-hans";
       }
       if (HINT[tag])  return tag;
@@ -233,21 +300,28 @@
   }
 
   var LANG = pickLang();
-  /* ================================================================== */
 
   var v    = document.getElementById("v");
   var hint = document.getElementById("hint");
 
-  /* ---------- Letterbox background ----------
-     The CSS leaves the background transparent so an embedded page shows the
-     parent through the letterbox area. On its own that would leave the
-     browser's default canvas, which is white in light mode. A
-     color-scheme:dark meta does not solve it either — that forces an opaque
-     dark canvas inside the iframe as well, defeating the point. Hence the
-     split on whether we are embedded. Reading window.top can throw
-     cross-origin; that case is treated as embedded, which is the safe
-     direction, since at worst an embedded page keeps the parent's
-     background. */
+  /* ── Letterbox background · Tło pasów ──
+     EN  The CSS leaves the background transparent so an embedded page shows
+         the parent through the letterbox area. On its own that would leave
+         the browser's default canvas, which is white in light mode. A
+         color-scheme:dark meta does not solve it either — that forces an
+         opaque dark canvas inside the iframe as well, defeating the point.
+         Hence the split on whether we are embedded. Reading window.top can
+         throw cross-origin; that case is treated as embedded, which is the
+         safe direction, since at worst an embedded page keeps the parent's
+         background.
+     PL  CSS zostawia tło przezroczyste, żeby osadzona strona pokazywała
+         rodzica przez pasy. Otwarta samodzielnie zostawiłaby domyślne płótno
+         przeglądarki, w trybie jasnym białe. Meta color-scheme:dark też tego
+         nie załatwia — wymusza nieprzezroczyste ciemne płótno również
+         w iframie, czyli psuje cały zamysł. Stąd rozróżnienie, czy strona
+         jest osadzona. Odczyt window.top między originami potrafi rzucić
+         wyjątkiem; ten przypadek liczy się jako osadzenie, bo to bezpieczny
+         kierunek — w najgorszym razie osadzona strona zachowa tło rodzica. */
   var standalone;
   try { standalone = (window.self === window.top); } catch (e) { standalone = false; }
   if (standalone) document.documentElement.style.background = "#000";
@@ -256,15 +330,18 @@
   hint.textContent = HINT[LANG] || HINT.en;
   if (RTL[LANG]) hint.setAttribute("dir", "rtl");
 
-  var locked   = false; // sound is on and playing
-  var blocked  = false; // the browser refused; waiting for a gesture
-  var noSource = false; // no video file was found
+  var locked   = false; // sound is on and playing · dźwięk włączony i gra
+  var blocked  = false; // the browser refused; waiting for a gesture · przeglądarka odmówiła, czekamy na gest
+  var noSource = false; // no video file was found · nie znaleziono pliku z filmem
   var retries  = 0;
 
-  /* ---------- 1. Playback that never stops ----------
-     The page has no way to stop the video, but the browser does: the phone
-     sleeps, the user switches tabs, the system suspends it in the
-     background. Each of those fires `pause`, and playback has to resume. */
+  /* ── 1. Playback that never stops · Odtwarzanie bez końca ──
+     EN  The page has no way to stop the video, but the browser does: the
+         phone sleeps, the user switches tabs, the system suspends it in the
+         background. Each of those fires `pause`, and playback has to resume.
+     PL  Strona nie ma czym zatrzymać filmu, ale przeglądarka ma: telefon
+         zasypia, ktoś przełącza kartę, system usypia ją w tle. Każde z nich
+         wysyła `pause`, a odtwarzanie musi wrócić. */
 
   function play() {
     var p = v.play();
@@ -278,13 +355,16 @@
   });
   window.addEventListener("pageshow", play);
 
-  // Connection dropped mid-stream.
+  // Connection dropped mid-stream · Zerwane połączenie w trakcie
   v.addEventListener("stalled", play);
   v.addEventListener("error", function () { setTimeout(play, 1000); });
 
-  // Media keys, the lock screen and the headphone button are the one control
-  // surface outside the page that cannot be removed, so pause is remapped
-  // onto play.
+  /* EN  Media keys, the lock screen and the headphone button are the one
+         control surface outside the page that cannot be removed, so pause is
+         remapped onto play.
+     PL  Klawisze multimedialne, ekran blokady i przycisk na słuchawkach to
+         jedyne sterowanie spoza strony, którego nie da się usunąć, więc
+         pauza jest przemapowana na odtwarzanie. */
   if ("mediaSession" in navigator) {
     ["play", "pause", "stop", "seekbackward", "seekforward", "seekto",
      "previoustrack", "nexttrack"].forEach(function (a) {
@@ -292,15 +372,19 @@
     });
   }
 
-  /* ---------- 2. Sound ----------
-     The one browser rule this page has to work around: autoplay with sound
-     is blocked until the user has interacted with the document. Every
-     attempt at circumventing it was measured and none worked, so the page
-     asks politely and falls back to muted playback. */
+  /* ── 2. Sound · Dźwięk ──
+     EN  The one browser rule this page has to work around: autoplay with
+         sound is blocked until the user has interacted with the document.
+         Every attempt at circumventing it was measured and none worked, so
+         the page asks politely and falls back to muted playback.
+     PL  Jedyna reguła przeglądarki, którą strona musi obejść: autoodtwarzanie
+         z dźwiękiem jest zablokowane, dopóki użytkownik nie wejdzie
+         w interakcję z dokumentem. Każdy sposób obejścia został zmierzony
+         i żaden nie zadziałał, więc strona grzecznie prosi i gra wyciszona. */
 
   function soundOn() { locked = true; blocked = false; hideHint(); }
 
-  function soundRefused() {   // the video keeps playing, just muted
+  function soundRefused() {   // the video keeps playing, just muted · film gra dalej, tylko wyciszony
     blocked = true;
     v.muted = true;
     play();
@@ -308,17 +392,24 @@
   }
 
   function goUnmuted(fromGesture) {
-    if (locked && !v.muted) return;         // sound is already on
-    // Once sound has been unlocked, automatic attempts stop. Without this the
-    // media events below would quietly undo a mute the user made from the
-    // browser's own menu, which is exactly the kind of fighting this page
-    // does not do. A deliberate tap still turns sound back on.
+    if (locked && !v.muted) return;         // sound is already on · dźwięk już gra
+    /* EN  Once sound has been unlocked, automatic attempts stop. Without this
+           the media events below would quietly undo a mute the user made
+           from the browser's own menu, which is exactly the kind of fighting
+           this page does not do. A deliberate tap still turns sound back on.
+       PL  Po odblokowaniu dźwięku automatyczne próby się kończą. Bez tego
+           zdarzenia multimediów niżej po cichu cofałyby wyciszenie zrobione
+           z menu przeglądarki, a to dokładnie ten rodzaj walki, którego
+           strona nie prowadzi. Świadome dotknięcie dalej włącza dźwięk. */
     if (locked && !fromGesture) return;
     if (blocked && !fromGesture) return;
     if (goUnmuted.busy) return;
-    // While the browser is still picking a <source> (a 404 on video.mp4, for
-    // instance) play() rejects with AbortError or NotSupportedError. That is
-    // source selection, not an autoplay block, so it is retried.
+    /* EN  While the browser is still picking a <source> (a 404 on video.mp4,
+           for instance) play() rejects with AbortError or NotSupportedError.
+           That is source selection, not an autoplay block, so it is retried.
+       PL  Dopóki przeglądarka wybiera <source> (np. 404 na video.mp4), play()
+           odrzuca z AbortError albo NotSupportedError. To wybór źródła, a nie
+           blokada autoodtwarzania, więc próba jest ponawiana. */
     if (v.readyState < 2 && !fromGesture) return;
 
     goUnmuted.busy = true;
@@ -326,7 +417,7 @@
     try { v.volume = VOLUME; } catch (e) {}
 
     var p = v.play();
-    if (!p || typeof p.then !== "function") {   // engines without a play() promise
+    if (!p || typeof p.then !== "function") {   // engines without a play() promise · silniki bez obietnicy z play()
       goUnmuted.busy = false;
       soundOn();
       return;
@@ -349,23 +440,31 @@
   function showHint() { if (v.muted && !noSource) hint.classList.add("on"); }
   function hideHint() { if (!noSource) hint.classList.remove("on"); }
 
-  // Any interaction turns on sound and fullscreen. There is no button to hit;
-  // the whole window is live.
+  /* EN  Any interaction turns on sound and fullscreen. There is no button to
+         hit; the whole window is live.
+     PL  Każda interakcja włącza dźwięk i pełny ekran. Nie ma przycisku,
+         w który trzeba trafić; całe okno jest aktywne. */
   ["pointerdown", "touchstart", "mousedown", "keydown"].forEach(function (ev) {
     window.addEventListener(ev, function () {
-      // Fullscreen first, before the sound check below. Once sound is on that
-      // check returns early, and with the order reversed no later gesture
-      // could ever restore fullscreen after the user left it.
+      /* EN  Fullscreen first, before the sound check below. Once sound is on
+             that check returns early, and with the order reversed no later
+             gesture could ever restore fullscreen after the user left it.
+         PL  Najpierw pełny ekran, przed sprawdzeniem dźwięku niżej. Gdy
+             dźwięk już gra, to sprawdzenie kończy funkcję, więc przy
+             odwrotnej kolejności żaden kolejny gest nie przywróciłby
+             pełnego ekranu po wyjściu z niego. */
       goFullscreen();
       if (locked && !v.muted) return;
       goUnmuted(true);
     }, { capture: true, passive: true });
   });
 
-  /* ---------- 3. Window size and orientation ----------
-     The CSS handles this everywhere except iOS Safari, which keeps reporting
-     the old height for a moment after a rotation and leaves a blank strip
-     behind. */
+  /* ── 3. Window size and orientation · Rozmiar okna i orientacja ──
+     EN  The CSS handles this everywhere except iOS Safari, which keeps
+         reporting the old height for a moment after a rotation and leaves a
+         blank strip behind.
+     PL  CSS załatwia to wszędzie poza iOS Safari, które jeszcze chwilę po
+         obrocie podaje starą wysokość i zostawia pusty pasek. */
 
   function fit() {
     v.style.width  = window.innerWidth + "px";
@@ -377,7 +476,7 @@
     fit();
     setTimeout(fit, 100);
     setTimeout(fit, 400);
-    setTimeout(fit, 900);   // after the rotation animation settles
+    setTimeout(fit, 900);   // after the rotation animation · po animacji obrotu
   });
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", fit);
@@ -390,9 +489,9 @@
   }
   v.addEventListener("loadedmetadata", fit);
 
-  /* ---------- 4. Fullscreen, orientation and wake lock ---------- */
+  /* ── 4. Fullscreen, orientation and wake lock · Pełny ekran, orientacja i blokada uśpienia ── */
 
-  // Keep the screen awake while playing, where the browser allows it.
+  // Keep the screen awake while playing, where allowed · Ekran nie gaśnie podczas odtwarzania, gdzie to dozwolone
   var wakeLock = null;
   function requestWakeLock() {
     if (!("wakeLock" in navigator)) return;
@@ -411,37 +510,46 @@
               document.msFullscreenElement);
   }
 
-  function hush(p) {                       // swallow the rejection, do not leave it unhandled
+  function hush(p) {                       // swallow the rejection · połknij odrzucenie, żeby nie wisiało
     if (p && typeof p.catch === "function") p.catch(function () {});
   }
 
-  // Called from every user gesture. Fullscreen requires one and cannot be
-  // requested on load. Leaving fullscreen (Esc, a system gesture) cannot be
-  // blocked, but the next gesture puts it back.
+  /* EN  Called from every user gesture. Fullscreen requires one and cannot be
+         requested on load. Leaving fullscreen (Esc, a system gesture) cannot
+         be blocked, but the next gesture puts it back.
+     PL  Wywoływane przy każdym geście. Pełny ekran wymaga gestu i nie da się
+         go włączyć przy ładowaniu. Wyjścia z niego (Esc, gest systemowy) nie
+         da się zablokować, ale kolejny gest go przywraca. */
   function goFullscreen() {
     if (isFullscreen()) return;
     var el = document.documentElement;
     var fn = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-    if (!fn) return;                       // iOS Safari has no element fullscreen
+    if (!fn) return;                       // iOS Safari: no element fullscreen · brak pełnego ekranu dla elementu
     try { hush(fn.call(el)); } catch (e) {}
   }
 
-  // The orientation lock only works while fullscreen is already active, so it
-  // runs on the event rather than straight after the request, which would be
-  // too early — requestFullscreen is asynchronous.
+  /* EN  The orientation lock only works while fullscreen is already active,
+         so it runs on the event rather than straight after the request,
+         which would be too early — requestFullscreen is asynchronous.
+     PL  Blokada orientacji działa tylko przy aktywnym pełnym ekranie, więc
+         odpala się na zdarzeniu, a nie zaraz po żądaniu, co byłoby za
+         wcześnie — requestFullscreen jest asynchroniczne. */
   function lockLandscape() {
     if (!isFullscreen()) return;
-    if (!screen.orientation || !screen.orientation.lock) return;   // iOS ignores it
+    if (!screen.orientation || !screen.orientation.lock) return;   // iOS ignores it · iOS to ignoruje
     try { hush(screen.orientation.lock("landscape")); } catch (e) {}
   }
   ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"].forEach(function (ev) {
     document.addEventListener(ev, function () { lockLandscape(); fit(); });
   });
 
-  /* ---------- 5. Missing file ----------
-     The only message this page ever shows: none of the files listed in
-     <source> exists. Without it you get a black screen and no way to tell a
-     missing file from a video that opens on a black frame. */
+  /* ── 5. Missing file · Brak pliku ──
+     EN  The only message this page ever shows: none of the files listed in
+         <source> exists. Without it you get a black screen and no way to
+         tell a missing file from a video that opens on a black frame.
+     PL  Jedyny komunikat, jaki strona w ogóle pokazuje: żaden z plików
+         w <source> nie istnieje. Bez niego jest czarny ekran i nie da się
+         odróżnić braku pliku od filmu, który zaczyna się czarną klatką. */
   setTimeout(function () {
     if (v.networkState === 3 /* NETWORK_NO_SOURCE */ && v.readyState === 0) {
       noSource = true;
@@ -451,10 +559,13 @@
     }
   }, 4000);
 
-  /* ---------- 6. Start ----------
-     The attempt at sound hangs off media events rather than DOMContentLoaded.
-     By the time the DOM is ready the browser may still be picking a
-     <source>, and play() would reject for that reason alone. */
+  /* ── 6. Start ──
+     EN  The attempt at sound hangs off media events rather than
+         DOMContentLoaded. By the time the DOM is ready the browser may still
+         be picking a <source>, and play() would reject for that reason alone.
+     PL  Próba włączenia dźwięku wisi na zdarzeniach multimediów, a nie na
+         DOMContentLoaded. Gdy DOM jest gotowy, przeglądarka może jeszcze
+         wybierać <source>, a play() odrzuciłoby już z samego tego powodu. */
 
   ["loadeddata", "canplay", "canplaythrough", "playing"].forEach(function (ev) {
     v.addEventListener(ev, function () { goUnmuted(false); });

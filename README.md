@@ -22,7 +22,7 @@ It runs on any phone, tablet or computer with a browser. Nothing to install, no 
 
 ## How it is made, in short
 
-- **One file.** The whole site is a single `index.html` of about 19 KB — no libraries, no frameworks, no server.
+- **One file.** The whole site is a single `index.html` of about 28 KB — no libraries, no frameworks, no server.
 - **Nothing is blocked — it is missing.** Instead of catching and cancelling clicks, the video is simply given no controls. There is nothing for the mouse to hit and nothing for the keyboard to reach. Code only covers what absence cannot: restarting after a pause, media keys, and turning the sound on.
 - **Free hosting.** The page lives on GitHub Pages and is published automatically on every change.
 - **Video preparation.** `compress.sh` shrinks a film to a predictable size and cuts out black bars baked into the picture.
@@ -302,7 +302,7 @@ Działa na każdym telefonie, tablecie i komputerze z przeglądarką. Nic nie tr
 
 ## Jak to zrobione, w skrócie
 
-- **Jeden plik.** Cała strona to pojedynczy `index.html` o wadze ok. 19 KB — bez bibliotek, frameworków i serwera.
+- **Jeden plik.** Cała strona to pojedynczy `index.html` o wadze ok. 28 KB — bez bibliotek, frameworków i serwera.
 - **Nic nie jest blokowane — po prostu tego nie ma.** Zamiast łapać i anulować kliknięcia, film w ogóle nie dostaje kontrolek. Mysz nie ma w co trafić, a klawiatura nie ma do czego dotrzeć. Kod obsługuje tylko to, czego sam brak nie załatwi: wznowienie po pauzie, klawisze multimedialne i włączenie dźwięku.
 - **Darmowy hosting.** Strona stoi na GitHub Pages i publikuje się sama przy każdej zmianie.
 - **Przygotowanie filmu.** `compress.sh` zmniejsza film do przewidywalnego rozmiaru i wycina czarne pasy wypalone w obrazie.
